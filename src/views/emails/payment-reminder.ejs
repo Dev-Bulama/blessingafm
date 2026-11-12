@@ -1,0 +1,8 @@
+<h1 style="font-size:22px;margin:0 0 12px;">We are waiting for your e-Transfer</h1>
+<p style="margin:0 0 12px;">Hi <%= order.first_name %>, your order <strong><%= order.order_number %></strong> is reserved, but we have not received your payment yet. We will start preparing it as soon as the transfer arrives.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFD400;border:2px solid #111111;margin:12px 0;"><tr><td style="padding:14px;font-size:15px;">
+  Send <strong><%= money(order.total_cents) %></strong> by Interac e-Transfer to<br><strong><%= settings.etransfer_email %></strong><br>Message: <strong><%= order.order_number %></strong>
+</td></tr></table>
+<% const cancelHours = Number(settings.etransfer_cancel_hours) || 0; %>
+<p style="margin:0 0 12px;font-size:13px;color:#555555;"><%= cancelHours > 0 ? `Orders that are not paid within ${cancelHours} hours are cancelled automatically.` : 'Unpaid orders may be cancelled so the items can go back on sale.' %> Already sent it? Thank you - you can ignore this email.</p>
+<p style="margin:20px 0 0;"><a href="<%= orderUrl %>" style="display:inline-block;background:#D81E1E;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;border:2px solid #111111;">View your order</a></p>

@@ -1,4 +1,4 @@
-<%- include('../partials/admin-head', { heading: `Orders (${total})` }) %>
+<%- include('../partials/admin-head', { heading: `Orders (${total})`, actions: [[`/admin/orders/export.csv${qs(query, { page: null }) === '?' ? '' : qs(query, { page: null })}`, 'Export these orders (CSV)']] }) %>
 <form method="get" class="panel mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6" role="search" aria-label="Filter orders">
   <div class="lg:col-span-2"><label class="label" for="q">Search</label><input id="q" type="search" name="q" value="<%= f.q %>" placeholder="Order no., name, email, phone" class="input"></div>
   <div><label class="label" for="status">Status</label><select id="status" name="status" class="input"><option value="">All</option><% statuses.forEach((s) => { %><option value="<%= s %>" <%= f.status === s ? 'selected' : '' %>><%= STATUS_LABELS[s] %></option><% }) %></select></div>

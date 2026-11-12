@@ -7,6 +7,7 @@ const shippingSvc = require('./shipping');
 const couponSvc = require('./coupon');
 const dates = require('../lib/dates');
 const { getStripe } = require('../config/stripe');
+const Paypal = require('./paypal');
 
 /** Which fulfilment and payment options the store currently offers. */
 function options(settings) {
@@ -19,6 +20,7 @@ function options(settings) {
     },
     payment: {
       stripe: on('payment_stripe_enabled') && Boolean(getStripe()),
+      paypal: on('payment_paypal_enabled') && Paypal.isConfigured(),
       etransfer: on('payment_etransfer_enabled') && Boolean(settings.etransfer_email),
       in_store: on('payment_instore_enabled'),
     },

@@ -127,6 +127,17 @@ const settingsSchema = z.object({
   etransfer_email: optionalEmail,
   etransfer_instructions: str(1000),
   order_notify_email: optionalEmail,
+  payment_paypal_enabled: flag,
+  notify_low_stock: flag,
+  notify_daily_summary: flag,
+  remind_abandoned_cart: flag,
+  abandoned_cart_hours: z.coerce.number({ error: 'Enter a number of hours' }).int().min(1).max(168).transform(String),
+  remind_pickup: flag,
+  remind_etransfer: flag,
+  etransfer_cancel_hours: z.coerce.number({ error: 'Enter a number of hours (0 = never)' }).int().min(0).max(720).transform(String),
+  remind_review: flag,
+  review_request_days: z.coerce.number({ error: 'Enter a number of days' }).int().min(1).max(60).transform(String),
+  back_in_stock_enabled: flag,
 });
 
 /** GET /admin/settings */
@@ -136,6 +147,7 @@ function settings(req, res) {
     status: {
       smtp: Boolean(env.smtp.host && env.smtp.user), smtpHost: env.smtp.host, smtpUser: env.smtp.user,
       stripe: Boolean(getStripe()), stripeLive: env.stripe.secretKey.startsWith('sk_live_'), stripeWebhook: Boolean(env.stripe.webhookSecret),
+      paypal: require('../../services/paypal').isConfigured(), paypalLive: env.paypal.mode === 'live',
       sharp: Image.hasSharp(), cron: Boolean(env.cronToken) && !env.cronToken.startsWith('change-me'), appUrl: env.appUrl,
     },
   });

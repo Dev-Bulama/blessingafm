@@ -1,6 +1,6 @@
 <% const o = old; const u = currentUser; const da = defaultAddress;
    const val = (name, fallback) => (o[name] !== undefined ? o[name] : (fallback || ''));
-   const payDefault = o.payment_method || (options.payment.stripe ? 'stripe' : options.payment.etransfer ? 'etransfer' : 'in_store'); %>
+   const payDefault = o.payment_method || (options.payment.stripe ? 'stripe' : options.payment.paypal ? 'paypal' : options.payment.etransfer ? 'etransfer' : 'in_store'); %>
 <div class="container-site py-6">
   <h1 class="h-display text-4xl sm:text-5xl">Checkout</h1>
   <% if (!u) { %><p class="mt-2 text-sm">Have an account? <a href="/account/login?next=/checkout" class="link">Sign in</a> for faster checkout and order tracking, or continue as a guest.</p><% } %>
@@ -106,6 +106,12 @@
               <span><span class="block font-bold">Card, Apple Pay or Google Pay</span><span class="text-sm text-neutral-800">You will be taken to Stripe's secure payment page to complete your order.</span></span>
             </label>
           <% } %>
+          <% if (options.payment.paypal) { %>
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-neutral-400 p-3 has-[:checked]:border-brand-black has-[:checked]:bg-brand-yellow-soft">
+              <input type="radio" name="payment_method" value="paypal" class="mt-1 h-5 w-5 accent-[#D81E1E]" <%= payDefault === 'paypal' ? 'checked' : '' %> data-payment>
+              <span><span class="block font-bold">PayPal</span><span class="text-sm text-neutral-800">Pay with your PayPal balance, bank account or card. You will be taken to PayPal to approve the payment.</span></span>
+            </label>
+          <% } %>
           <% if (options.payment.etransfer) { %>
             <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-neutral-400 p-3 has-[:checked]:border-brand-black has-[:checked]:bg-brand-yellow-soft">
               <input type="radio" name="payment_method" value="etransfer" class="mt-1 h-5 w-5 accent-[#D81E1E]" <%= payDefault === 'etransfer' ? 'checked' : '' %> data-payment>
@@ -118,7 +124,7 @@
               <span><span class="block font-bold">Pay in store</span><span class="text-sm text-neutral-800">Pay by cash, debit or credit when you collect your order. Pickup orders only.</span></span>
             </label>
           <% } %>
-          <% if (!options.payment.stripe && !options.payment.etransfer && !options.payment.in_store) { %><p class="alert-error">Online ordering is temporarily unavailable. Please call the store.</p><% } %>
+          <% if (!options.payment.stripe && !options.payment.paypal && !options.payment.etransfer && !options.payment.in_store) { %><p class="alert-error">Online ordering is temporarily unavailable. Please call the store.</p><% } %>
         </div>
       </fieldset>
 

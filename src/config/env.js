@@ -31,5 +31,13 @@ module.exports = {
     secretKey: process.env.STRIPE_SECRET_KEY || '',
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
   },
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID || '',
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET || '',
+    mode: process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox',
+    // PAYPAL_API_BASE is only for automated tests against a mock server.
+    apiBase: process.env.PAYPAL_API_BASE || (process.env.PAYPAL_MODE === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com'),
+  },
+  mailTransport: process.env.MAIL_TRANSPORT || 'smtp',
   cronToken: process.env.CRON_TOKEN || '',
 };

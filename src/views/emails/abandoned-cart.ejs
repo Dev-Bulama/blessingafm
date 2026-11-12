@@ -1,0 +1,9 @@
+<h1 style="font-size:22px;margin:0 0 12px;">Still thinking it over, <%= user.first_name %>?</h1>
+<p style="margin:0 0 12px;">You left <%= items.length === 1 ? 'this' : 'these' %> in your cart. We have saved <%= items.length === 1 ? 'it' : 'them' %> for you, but stock can run out.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
+  <% items.forEach((i) => { %><tr><td style="border-bottom:1px solid #dddddd;padding:8px 0;"><strong><%= i.name %></strong><% if (i.variant_name) { %> (<%= i.variant_name %>)<% } %><br><span style="color:#555555;font-size:12px;">Qty <%= i.qty %><%= i.stock <= 5 ? ` - only ${i.stock} left` : '' %></span></td><td align="right" style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= money(i.line_cents) %></td></tr><% }) %>
+  <tr><td align="right" style="padding:8px 8px 0 0;font-weight:bold;">Subtotal</td><td align="right" style="padding:8px 0 0;font-weight:bold;"><%= money(subtotalCents) %></td></tr>
+</table>
+<p style="margin:20px 0 0;"><a href="<%= cartUrl %>" style="display:inline-block;background:#D81E1E;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;border:2px solid #111111;">Return to my cart</a></p>
+<p style="margin:16px 0 0;font-size:13px;color:#555555;">Free pickup at <%= settings.store_address_line1 %>, <%= settings.store_city %>. Local delivery and Canada-wide shipping available.</p>
+<p style="margin:16px 0 0;font-size:12px;color:#555555;">You are receiving this because you have an account with us. <a href="<%= unsubscribe %>" style="color:#555555;">Stop reminder emails</a>.</p>

@@ -4,22 +4,24 @@ const Order = require('../../models/order');
 const Audit = require('../../models/audit');
 const OrderService = require('../../services/order');
 const dates = require('../../lib/dates');
+const Csv = require('../../services/csv');
 const { z, checkbox } = require('../../middleware/validation');
 
 const PER_PAGE = 30;
 
-/** GET /admin/orders */
-async function list(req, res) {
-  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-  const f = {
-    q: String(req.query.q || '').trim().slice(0, 80),
-    status: Order.STATUSES.includes(req.query.status) ? req.query.status : '',
-    fulfilment: ['pickup', 'delivery', 'shipping'].includes(req.query.fulfilment) ? req.query.fulfilment : '',
-    payment: ['unpaid', 'paid', 'refunded'].includes(req.query.payment) ? req.query.payment : '',
-    from: /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : '',
-    to: /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : '',
+function readFilters(query) {
+  return {
+    q: String(query.q || '').trim().slice(0, 80),
+    status: Order.STATUSES.includes(query.status) ? query.status : '',
+    fulfilment: ['pickup', 'delivery', 'shipping'].includes(query.fulfilment) ? query.fulfilment : '',
+    payment: ['unpaid', 'paid', 'refunded'].includes(query.payment) ? query.payment : '',
+    from: /^\d{4}-\d{2}-\d{2}$/.test(query.from || '') ? query.from : '',
+    to: /^\d{4}-\d{2}-\d{2}$/.test(query.to || '') ? query.to : '',
   };
-  const base = () => db('orders').modify((qb) => {
+}
+
+function filtered(f) {
+  return db('orders').modify((qb) => {
     if (f.status) qb.where({ status: f.status });
     if (f.fulfilment) qb.where({ fulfilment_method: f.fulfilment });
     if (f.payment) qb.where({ payment_status: f.payment });
@@ -31,9 +33,34 @@ async function list(req, res) {
         .orWhere('last_name', 'like', like).orWhere('first_name', 'like', like));
     }
   });
-  const [{ n }] = await base().count({ n: 'id' });
-  const orders = await base().orderBy('id', 'desc').limit(PER_PAGE).offset((page - 1) * PER_PAGE);
+}
+
+/** GET /admin/orders */
+async function list(req, res) {
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const f = readFilters(req.query);
+  const [{ n }] = await filtered(f).count({ n: 'id' });
+  const orders = await filtered(f).orderBy('id', 'desc').limit(PER_PAGE).offset((page - 1) * PER_PAGE);
   res.render('admin/orders', { title: 'Orders', orders, f, page, pages: Math.max(1, Math.ceil(Number(n) / PER_PAGE)), total: Number(n), statuses: Order.STATUSES });
+}
+
+/** GET /admin/orders/export.csv - the filtered orders, one row per order, for bookkeeping */
+async function exportCsv(req, res) {
+  const rows = await filtered(readFilters(req.query)).orderBy('id', 'desc').limit(20000);
+  const dollars = (c) => (c / 100).toFixed(2);
+  const columns = ['order_number', 'placed_at', 'status', 'customer', 'email', 'phone', 'fulfilment', 'payment_method', 'payment_status', 'paid_at',
+    'subtotal', 'discount', 'coupon', 'delivery_or_shipping', 'tax', 'total', 'city', 'province', 'postal_code', 'pickup_date', 'tracking_number'];
+  const out = rows.map((o) => ({
+    order_number: o.order_number, placed_at: dates.formatDateTime(o.created_at), status: Order.STATUS_LABELS[o.status],
+    customer: `${o.first_name} ${o.last_name}`, email: o.email, phone: o.phone, fulfilment: Order.FULFILMENT_LABELS[o.fulfilment_method],
+    payment_method: Order.PAYMENT_LABELS[o.payment_method], payment_status: o.payment_status, paid_at: o.paid_at ? dates.formatDateTime(o.paid_at) : '',
+    subtotal: dollars(o.subtotal_cents), discount: dollars(o.discount_cents), coupon: o.coupon_code || '', delivery_or_shipping: dollars(o.shipping_cents),
+    tax: dollars(o.tax_cents), total: dollars(o.total_cents), city: o.ship_city || '', province: o.ship_province || '', postal_code: o.ship_postal_code || '',
+    pickup_date: o.pickup_date ? dates.formatYmd(o.pickup_date) : '', tracking_number: o.tracking_number || '',
+  }));
+  await Audit.log(req, 'export', 'orders', null, { rows: out.length });
+  res.set('Content-Type', 'text/csv; charset=utf-8').set('Content-Disposition', `attachment; filename="orders-${new Date().toISOString().slice(0, 10)}.csv"`)
+    .send(`\uFEFF${Csv.toCsv(columns, out)}`);
 }
 
 /** GET /admin/orders/:id */
@@ -97,4 +124,4 @@ function print(mode) {
   };
 }
 
-module.exports = { list, detail, statusSchema, changeStatus, detailsSchema, saveDetails, print };
+module.exports = { exportCsv, list, detail, statusSchema, changeStatus, detailsSchema, saveDetails, print };

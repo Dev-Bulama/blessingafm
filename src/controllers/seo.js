@@ -11,6 +11,8 @@ function robots(req, res) {
     'Disallow: /checkout',
     'Disallow: /order/',
     'Disallow: /search',
+    'Disallow: /track-order',
+    'Disallow: /email/',
     'Disallow: /cron',
     'Disallow: /webhooks',
     '',

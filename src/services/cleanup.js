@@ -3,6 +3,8 @@ const db = require('../config/db');
 const { getStripe } = require('../config/stripe');
 const logger = require('../config/logger');
 const OrderService = require('./order');
+const Paypal = require('./paypal');
+const Notifications = require('./notifications');
 
 /**
  * Housekeeping run by the hPanel cron job (GET /cron/cleanup?token=...). Each step is small and
@@ -20,23 +22,34 @@ async function run() {
   result.expired_sessions = await db('sessions').where('expires', '<', db.raw('UNIX_TIMESTAMP()')).limit(5000).del();
   result.expired_tokens = await db('user_tokens').where('expires_at', '<', db.raw('NOW() - INTERVAL 1 DAY')).del();
 
-  // Card orders never paid: the Stripe session lasts 60 minutes, so after 2 hours release the stock.
-  const stale = await db('orders').where({ payment_method: 'stripe', status: 'pending', payment_status: 'unpaid' })
-    .where('created_at', '<', db.raw('NOW() - INTERVAL 2 HOUR')).select('id', 'stripe_session_id').limit(50);
+  // Card and PayPal orders never paid: after 2 hours ask the provider one last time, then release the stock.
+  const stale = await db('orders').whereIn('payment_method', ['stripe', 'paypal']).where({ status: 'pending', payment_status: 'unpaid' })
+    .where('created_at', '<', db.raw('NOW() - INTERVAL 2 HOUR')).limit(50);
   result.cancelled_unpaid_orders = 0;
+  result.recovered_payments = 0;
   const stripe = getStripe();
   for (const o of stale) {
     try {
-      if (stripe && o.stripe_session_id) {
+      if (o.payment_method === 'stripe' && stripe && o.stripe_session_id) {
         // Double-check with Stripe in case a webhook was missed.
         const session = await stripe.checkout.sessions.retrieve(o.stripe_session_id);
         if (session.payment_status === 'paid') {
           await OrderService.markPaidFromStripe(session);
+          result.recovered_payments += 1;
           continue;
         }
         if (session.status === 'open') await stripe.checkout.sessions.expire(o.stripe_session_id).catch(() => {});
       }
-      if (await OrderService.cancelUnpaidStripeOrder(o.id, 'Payment was not completed - order cancelled automatically')) {
+      if (o.payment_method === 'paypal' && o.paypal_order_id && Paypal.isConfigured()) {
+        // The customer may have approved the payment and closed the window before returning to the site.
+        const pp = await Paypal.getOrder(o.paypal_order_id).catch(() => null);
+        if (pp && (pp.status === 'APPROVED' || pp.status === 'COMPLETED')) {
+          const outcome = await OrderService.capturePaypal(o);
+          if (outcome === 'paid') { result.recovered_payments += 1; continue; }
+          if (outcome === 'pending') continue;
+        }
+      }
+      if (await OrderService.cancelUnpaidOnlineOrder(o.id, 'Payment was not completed - order cancelled automatically')) {
         result.cancelled_unpaid_orders += 1;
       }
     } catch (err) {
@@ -45,6 +58,8 @@ async function run() {
   }
 
   result.old_audit_logs = await db('audit_logs').where('created_at', '<', db.raw('NOW() - INTERVAL 365 DAY')).limit(5000).del();
+  // Alerts and reminders (low-stock digest, abandoned carts, pickup and payment reminders...).
+  result.notifications = await Notifications.run();
   return result;
 }
 

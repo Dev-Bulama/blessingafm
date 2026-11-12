@@ -218,4 +218,28 @@ async function toggleWishlist(req, res) {
   return res.redirect(req.body.back === 'wishlist' ? '/account/wishlist' : `/p/${p.slug}`);
 }
 
-module.exports = { category, shop, search, suggest, product, createReview, reviewSchema, toggleWishlist, parseListQuery };
+const stockAlertSchema = z.object({
+  email: z.string({ error: 'Email is required' }).trim().toLowerCase().max(190).email('Enter a valid email address'),
+  variant_id: z.preprocess((v) => (v === '' || v === undefined ? null : v), z.coerce.number().int().positive().nullable()),
+});
+
+/** POST /p/:slug/notify - "email me when this is back in stock" */
+async function stockAlert(req, res, next) {
+  const p = await db('products').where({ slug: req.params.slug, is_active: true }).first('id', 'slug', 'has_variants');
+  if (!p) return next();
+  let variantId = null;
+  if (p.has_variants) {
+    const v = req.valid.variant_id ? await db('product_variants').where({ id: req.valid.variant_id, product_id: p.id }).first('id') : null;
+    if (!v) return res.status(422).json({ ok: false, message: 'Please choose an option first.' });
+    variantId = v.id;
+  }
+  const existing = await db('stock_alerts').where({ product_id: p.id, email: req.valid.email }).whereNull('notified_at')
+    .where((w) => (variantId ? w.where('variant_id', variantId) : w.whereNull('variant_id'))).first('id');
+  if (!existing) await db('stock_alerts').insert({ product_id: p.id, variant_id: variantId, email: req.valid.email });
+  const message = 'Thank you. We will email you once, as soon as it is back in stock.';
+  if (req.xhr) return res.json({ ok: true, message });
+  req.flash('success', message);
+  return res.redirect(`/p/${p.slug}`);
+}
+
+module.exports = { stockAlertSchema, stockAlert, category, shop, search, suggest, product, createReview, reviewSchema, toggleWishlist, parseListQuery };

@@ -1,0 +1,29 @@
+<% const s = summary; %>
+<h1 style="font-size:22px;margin:0 0 12px;">Good morning! Here is today, <%= dates.formatYmd(s.date, true) %></h1>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:0 0 16px;">
+  <tr>
+    <td width="33%" style="background:#FFD400;border:2px solid #111111;padding:12px;"><span style="font-size:26px;font-weight:bold;"><%= s.toPrepare %></span><br>order<%= s.toPrepare === 1 ? '' : 's' %> to prepare</td>
+    <td width="33%" style="background:#FFF4B8;border:2px solid #111111;padding:12px;"><span style="font-size:26px;font-weight:bold;"><%= s.pickupsToday.length %></span><br>pickup<%= s.pickupsToday.length === 1 ? '' : 's' %> today</td>
+    <td width="33%" style="background:#ffffff;border:2px solid #111111;padding:12px;"><span style="font-size:26px;font-weight:bold;"><%= money(s.yesterday.total) %></span><br>paid yesterday (<%= s.yesterday.count %>)</td>
+  </tr>
+</table>
+<ul style="margin:0 0 16px;padding-left:20px;">
+  <li><strong><%= s.paid %></strong> paid and waiting to be started, <strong><%= s.processing %></strong> being prepared</li>
+  <li><strong><%= s.awaitingPayment %></strong> waiting for an Interac e-Transfer</li>
+  <li><strong><%= s.pending %></strong> pending (pay in store, or card payment not finished)</li>
+  <% if (s.unreadMessages) { %><li><strong><%= s.unreadMessages %></strong> unread contact message<%= s.unreadMessages === 1 ? '' : 's' %></li><% } %>
+  <% if (s.pendingReviews) { %><li><strong><%= s.pendingReviews %></strong> review<%= s.pendingReviews === 1 ? '' : 's' %> waiting for approval</li><% } %>
+</ul>
+<% if (s.pickupsToday.length) { %>
+  <h2 style="font-size:16px;margin:0 0 6px;">Pickups today</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:0 0 16px;">
+    <% s.pickupsToday.forEach((o) => { %><tr><td style="border-bottom:1px solid #dddddd;padding:6px 0;"><%= o.pickup_slot_label %></td><td style="border-bottom:1px solid #dddddd;padding:6px 0;"><strong><%= o.order_number %></strong> <%= o.first_name %> <%= o.last_name %></td><td style="border-bottom:1px solid #dddddd;padding:6px 0;"><%= STATUS_LABELS[o.status] %></td><td align="right" style="border-bottom:1px solid #dddddd;padding:6px 0;"><%= o.payment_status === 'paid' ? 'paid' : `collect ${money(o.total_cents)}` %></td></tr><% }) %>
+  </table>
+<% } %>
+<% if (s.lowStock.length) { %>
+  <h2 style="font-size:16px;margin:0 0 6px;">Low stock (<%= s.lowStock.length %>)</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:0 0 16px;">
+    <% s.lowStock.forEach((i) => { %><tr><td style="border-bottom:1px solid #dddddd;padding:6px 0;"><%= i.name %></td><td style="border-bottom:1px solid #dddddd;padding:6px 0;"><%= i.sku %></td><td align="right" style="border-bottom:1px solid #dddddd;padding:6px 0;font-weight:bold;color:<%= i.stock_qty <= 0 ? '#B01515' : '#111111' %>;"><%= i.stock_qty %> left</td></tr><% }) %>
+  </table>
+<% } else { %><p style="margin:0 0 16px;">Nothing is running low on stock.</p><% } %>
+<p style="margin:0;"><a href="<%= adminUrl %>" style="display:inline-block;background:#111111;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;">Open the admin panel</a></p>

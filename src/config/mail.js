@@ -6,6 +6,11 @@ let transporter = null;
 
 /** Returns a Nodemailer transport, or null when SMTP is not configured. */
 function getTransport() {
+  if (env.mailTransport === 'log') {
+    // Development: nothing is sent; the message is written to the app log by the mail service.
+    if (!transporter) transporter = nodemailer.createTransport({ jsonTransport: true });
+    return transporter;
+  }
   if (!env.smtp.host || !env.smtp.user) return null;
   if (!transporter) {
     transporter = nodemailer.createTransport({
@@ -22,4 +27,6 @@ function getTransport() {
   return transporter;
 }
 
-module.exports = { getTransport };
+const isConfigured = () => Boolean(getTransport());
+
+module.exports = { getTransport, isConfigured };

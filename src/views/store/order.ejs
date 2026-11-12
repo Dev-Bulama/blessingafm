@@ -1,8 +1,8 @@
-<% const q = token ? `?t=${token}` : ''; const unpaidCard = order.payment_method === 'stripe' && order.status === 'pending' && order.payment_status === 'unpaid'; %>
+<% const q = token ? `?t=${token}` : ''; const unpaidCard = ['stripe', 'paypal'].includes(order.payment_method) && order.status === 'pending' && order.payment_status === 'unpaid'; const viaPaypal = order.payment_method === 'paypal'; %>
 <div class="container-site max-w-4xl py-8">
   <% if (unpaidCard && paymentCancelled) { %>
     <h1 class="h-display text-4xl sm:text-5xl">Payment not completed</h1>
-    <p class="alert-error mt-4" role="alert">Your card was not charged. Your items are being held for a short time - complete the payment to confirm your order.</p>
+    <p class="alert-error mt-4" role="alert"><%= viaPaypal ? 'Your PayPal payment was not completed and you have not been charged.' : 'Your card was not charged.' %> Your items are being held for a short time - complete the payment to confirm your order.</p>
   <% } else if (unpaidCard) { %>
     <h1 class="h-display text-4xl sm:text-5xl">Confirming your payment&hellip;</h1>
     <p class="alert-info mt-4" role="status" <%= justPaid ? 'data-refresh-until-paid' : '' %>><%= justPaid ? 'Thank you! We are waiting for confirmation from the payment processor. This page will update automatically in a few seconds.' : 'This order has not been paid yet.' %></p>
@@ -19,10 +19,10 @@
     <span class="status status-<%= order.status %>"><%= STATUS_LABELS[order.status] %></span>
   </p>
 
-  <% if (unpaidCard && stripeAvailable) { %>
+  <% if (unpaidCard && payAvailable) { %>
     <form action="/order/<%= order.order_number %>/pay<%= q %>" method="post" class="mt-5">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button type="submit" class="btn-primary shadow-hard-sm">Pay <%= money(order.total_cents) %> now</button>
+      <button type="submit" class="btn-primary shadow-hard-sm">Pay <%= money(order.total_cents) %> now<%= viaPaypal ? ' with PayPal' : '' %></button>
     </form>
   <% } %>
 

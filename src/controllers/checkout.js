@@ -16,7 +16,7 @@ const checkoutSchema = z.object({
   first_name: trimmed(80, 'First name'),
   last_name: trimmed(80, 'Last name'),
   fulfilment: z.enum(['pickup', 'delivery', 'shipping'], { message: 'Choose how you want to receive your order' }),
-  payment_method: z.enum(['stripe', 'etransfer', 'in_store'], { message: 'Choose a payment method' }),
+  payment_method: z.enum(['stripe', 'paypal', 'etransfer', 'in_store'], { message: 'Choose a payment method' }),
   pickup_slot: z.string().trim().max(40).optional(), // "YYYY-MM-DD|slotId"
   ship_name: optionalText(160),
   line1: optionalText(190),
@@ -158,12 +158,46 @@ async function place(req, res) {
       return res.redirect(303, session.url);
     } catch (err) {
       logger.error(`Stripe session creation failed for ${order.order_number}`, err);
-      await OrderService.cancelUnpaidStripeOrder(order.id, 'Card payment could not be started');
+      await OrderService.cancelUnpaidOnlineOrder(order.id, 'Card payment could not be started');
       req.flash('error', 'We could not start the card payment, so your order was not placed and your items are back in stock. Please try again or choose another payment method.');
       return res.redirect('/cart');
     }
   }
+  if (order.payment_method === 'paypal') {
+    try {
+      return res.redirect(303, await OrderService.createPaypalOrder(order, res.locals.settings.store_name));
+    } catch (err) {
+      logger.error(`PayPal order creation failed for ${order.order_number}`, err);
+      await OrderService.cancelUnpaidOnlineOrder(order.id, 'PayPal payment could not be started');
+      req.flash('error', 'We could not start the PayPal payment, so your order was not placed and your items are back in stock. Please try again or choose another payment method.');
+      return res.redirect('/cart');
+    }
+  }
   return res.redirect(orderUrl);
+}
+
+/**
+ * GET /checkout/paypal/return - the customer approved the payment at PayPal.
+ * The payment is captured server-to-server; the order is marked paid only from PayPal's response.
+ */
+async function paypalReturn(req, res, next) {
+  req.params.number = String(req.query.o || '');
+  const order = await loadOrder(req);
+  if (!order || order.payment_method !== 'paypal') return next();
+  const back = `/order/${order.order_number}?t=${order.access_token}`;
+  if (order.payment_status === 'paid') return res.redirect(`${back}&paid=1`);
+  if (order.status !== 'pending' || !order.paypal_order_id || req.query.token !== order.paypal_order_id) {
+    req.flash('error', 'This PayPal payment link is no longer valid. If you were charged, please contact us.');
+    return res.redirect(back);
+  }
+  try {
+    const outcome = await OrderService.capturePaypal(order);
+    if (outcome === 'paid' || outcome === 'pending') return res.redirect(`${back}&paid=1`);
+  } catch (err) {
+    logger.error(`PayPal capture failed for ${order.order_number}`, err);
+  }
+  req.flash('error', 'PayPal could not complete the payment and you have not been charged. You can try again below.');
+  return res.redirect(`${back}&cancelled=1`);
 }
 
 /** Guests reach an order with its secret token; customers and staff by being signed in. */
@@ -189,7 +223,7 @@ async function orderPage(req, res, next) {
     title: `Order ${order.order_number}`, noindex: true, order, steps: Order.trackerSteps(order),
     token: req.query.t ? order.access_token : null,
     justPaid: req.query.paid === '1', paymentCancelled: req.query.cancelled === '1',
-    stripeAvailable: Checkout.options(res.locals.settings).payment.stripe,
+    payAvailable: Checkout.options(res.locals.settings).payment[order.payment_method] === true,
   });
 }
 
@@ -206,18 +240,41 @@ async function payAgain(req, res, next) {
   const order = await loadOrder(req);
   if (!order) return next();
   const back = `/order/${order.order_number}${req.query.t ? `?t=${order.access_token}` : ''}`;
-  if (order.payment_method !== 'stripe' || order.status !== 'pending' || order.payment_status !== 'unpaid') {
+  if (!Order.ONLINE_METHODS.includes(order.payment_method) || order.status !== 'pending' || order.payment_status !== 'unpaid') {
     req.flash('error', 'This order can no longer be paid online.');
     return res.redirect(back);
   }
   try {
+    if (order.payment_method === 'paypal') return res.redirect(303, await OrderService.createPaypalOrder(order, res.locals.settings.store_name));
     const session = await OrderService.createStripeSession(order);
     return res.redirect(303, session.url);
   } catch (err) {
-    logger.error(`Stripe retry failed for ${order.order_number}`, err);
-    req.flash('error', 'We could not start the card payment. Please try again in a moment.');
+    logger.error(`Payment retry failed for ${order.order_number}`, err);
+    req.flash('error', 'We could not start the payment. Please try again in a moment.');
     return res.redirect(back);
   }
 }
 
-module.exports = { checkoutSchema, quoteSchema, show, quote, place, orderPage, invoice, payAgain };
+const trackSchema = z.object({
+  order_number: z.string({ error: 'Order number is required' }).trim().toUpperCase().regex(/^(BAM-)?\d{6,12}$/, 'Enter the order number from your confirmation email, e.g. BAM-100123'),
+  email,
+});
+
+/** GET /track-order */
+function trackForm(req, res) {
+  res.render('store/track-order', { title: 'Track Your Order', metaDescription: 'Check the status of your order with your order number and email address.' });
+}
+
+/** POST /track-order - guests look up an order with its number and the email used at checkout */
+async function track(req, res) {
+  const number = req.valid.order_number.startsWith('BAM-') ? req.valid.order_number : `BAM-${req.valid.order_number}`;
+  const order = await db('orders').where({ order_number: number, email: req.valid.email }).first('order_number', 'access_token');
+  if (!order) {
+    req.session.form = { old: { order_number: req.body.order_number, email: req.body.email }, errors: {} };
+    req.flash('error', 'We could not find an order with that number and email address. Please check both and try again.');
+    return res.redirect('/track-order');
+  }
+  return res.redirect(`/order/${order.order_number}?t=${order.access_token}`);
+}
+
+module.exports = { checkoutSchema, quoteSchema, show, quote, place, paypalReturn, orderPage, invoice, payAgain, trackSchema, trackForm, track };

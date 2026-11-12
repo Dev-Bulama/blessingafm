@@ -1,0 +1,8 @@
+<h1 style="font-size:22px;margin:0 0 12px;">Low stock alert</h1>
+<p style="margin:0 0 12px;"><%= items.length === 1 ? 'This item has' : 'These items have' %> just dropped to the low-stock level<% if (order) { %> after order <strong><%= order.order_number %></strong><% } %>.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:12px 0;">
+  <tr><th align="left" style="border-bottom:2px solid #111111;padding:6px 0;">Item</th><th align="left" style="border-bottom:2px solid #111111;padding:6px 0;">SKU</th><th align="right" style="border-bottom:2px solid #111111;padding:6px 0;">Left</th><th align="right" style="border-bottom:2px solid #111111;padding:6px 0;">Alert at</th></tr>
+  <% items.forEach((i) => { %><tr><td style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= i.name %></td><td style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= i.sku %></td><td align="right" style="border-bottom:1px solid #dddddd;padding:8px 0;font-weight:bold;color:<%= i.stock_qty <= 0 ? '#B01515' : '#111111' %>;"><%= i.stock_qty %></td><td align="right" style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= i.threshold %></td></tr><% }) %>
+</table>
+<p style="margin:20px 0 0;"><a href="<%= inventoryUrl %>" style="display:inline-block;background:#111111;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;">Open inventory</a></p>
+<p style="margin:16px 0 0;font-size:13px;color:#555555;">You get this email once, when an item crosses its alert level. Change the level on the product, or turn these emails off in Admin &gt; Settings.</p>

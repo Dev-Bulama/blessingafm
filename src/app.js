@@ -27,6 +27,9 @@ app.set('layout', 'layouts/store');
 app.set('layout extractScripts', false);
 if (env.isProd) app.set('view cache', true);
 
+// Automated tests point PAYPAL_API_BASE at a local mock; allow its redirect too. Never set in production.
+const paypalTestOrigin = process.env.PAYPAL_API_BASE && !env.isProd ? [new URL(process.env.PAYPAL_API_BASE).origin] : [];
+
 // ---------- Security headers ----------
 app.use(helmet({
   contentSecurityPolicy: {
@@ -39,7 +42,7 @@ app.use(helmet({
       fontSrc: ["'self'"],
       connectSrc: ["'self'"],
       frameSrc: ['https://www.google.com'], // store map embed
-      formAction: ["'self'", 'https://checkout.stripe.com'], // redirect to hosted Stripe Checkout
+      formAction: ["'self'", 'https://checkout.stripe.com', 'https://www.paypal.com', 'https://www.sandbox.paypal.com', ...paypalTestOrigin], // redirects to hosted Stripe Checkout / PayPal
       frameAncestors: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],

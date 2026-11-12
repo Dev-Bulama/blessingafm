@@ -69,10 +69,12 @@ exports.seed = async function seed(knex) {
       ['Do you deliver?', 'We deliver in Newmarket and nearby York Region communities including Aurora, East Gwillimbury, Bradford, Richmond Hill, Markham and Vaughan. Enter your postal code at checkout to see the fee and minimum order for your area.'],
       ['Do you ship across Canada?', 'Yes, shelf-stable groceries and beauty products ship anywhere in Canada at a flat rate based on weight. Frozen, perishable and pickup-only items cannot be shipped.'],
       ['Why can I not ship some of the items in my cart?', 'Frozen food, fresh produce and very heavy items would not arrive in good condition by mail. Checkout shows which items are affected so you can remove them, or switch to pickup or local delivery.'],
-      ['How can I pay?', 'By credit or debit card, Apple Pay or Google Pay through Stripe; by Interac e-Transfer; or in store when you collect a pickup order.'],
+      ['How can I pay?', 'By credit or debit card, Apple Pay or Google Pay; by PayPal; by Interac e-Transfer; or in store when you collect a pickup order.'],
       ['How does Interac e-Transfer payment work?', 'Place your order, then send an e-Transfer for the order total to the email address shown on your confirmation, with your order number in the message. We prepare your order once the transfer is accepted.'],
       ['Why is tax charged on some items and not others?', 'In Ontario, basic groceries such as rice, flour, beans, fish and cooking oil are zero-rated, so no HST is charged. HST of 13% applies to taxable items such as beauty products, snacks and soft drinks. Your cart shows the tax before you pay.'],
       ['Can I return an item?', 'Unopened beauty products can be returned within 14 days. Food, and opened hair or beauty products, cannot be returned for hygiene and safety reasons, but we will always replace or refund anything that arrives damaged or incorrect. See our Returns & Refunds page.'],
+      ['An item I want is sold out. What can I do?', 'Open the product page and enter your email under "Want an email when it is back?". We will send you one email as soon as it is restocked.'],
+      ['How do I check on my order?', 'Use the "Track your order" link at the bottom of any page with your order number and email address, or sign in to your account to see all your orders.'],
       ['I cannot find a product. Can you get it for me?', 'Very likely. Send us a message or ask in store and we will check with our suppliers.'],
     ];
     await knex('faqs').insert(faqs.map(([question, answer], i) => ({ question, answer, sort_order: i + 1 })));

@@ -29,7 +29,8 @@ related products and verified-buyer reviews. Wishlist.
 **Cart and checkout** - guest and customer carts (merged on login), slide-out drawer, coupons, one-page checkout.
 Pickup with day and time slots, local delivery by postal-code zone, flat-rate shipping by weight. Frozen, perishable
 and pickup-only items are blocked from shipping and the customer is told which items are the cause. Ontario HST on
-taxable items only. Stripe Checkout, Interac e-Transfer and pay in store.
+taxable items only. Stripe Checkout (cards, Apple Pay, Google Pay), PayPal, Interac e-Transfer and pay in store.
+Guests can track an order with its number and email. Sold-out products offer "email me when it is back".
 
 **Customer account** - register, login, email verification, password reset, order history and tracking, printable
 invoice, reorder, address book, wishlist, profile and password.
@@ -37,7 +38,22 @@ invoice, reorder, address book, wishlist, profile and password.
 **Admin panel** (`/admin`) - dashboard with sales chart, products (variants, images with drag reorder, CSV import and
 export, bulk price/stock edit), categories, brands, inventory with logged history, orders with status flow and
 customer emails, invoices and packing slips, customers, coupons, delivery zones, shipping rates, pickup slots,
-banners, pages (rich text), FAQs, reviews, newsletter subscribers, contact messages, settings, staff roles, audit log.
+banners, pages (rich text), FAQs, reviews, newsletter subscribers, contact messages, settings, staff roles, audit log,
+orders CSV export.
+
+**Alerts and reminders** (all switchable in Admin -> Settings):
+
+| Who | Email | When |
+| --- | --- | --- |
+| Store | Low stock alert | The moment an order takes an item down to its low-stock level |
+| Store | Daily summary | Each morning after 7 AM: orders to prepare, today's pickups, unpaid e-Transfers, low stock, yesterday's sales |
+| Customer | Pickup reminder | The day before and the day of pickup |
+| Customer | e-Transfer payment reminder | Order still unpaid after 24 hours (optional auto-cancel after a set number of hours) |
+| Customer | Abandoned cart reminder | Signed-in customer left items in the cart for 24 hours (once per cart) |
+| Customer | Review request | 5 days after an order is completed |
+| Customer | Back in stock | A sold-out item they asked about is available again |
+
+Reminders are sent by the hourly cron job (step 8) and need working email (step 6).
 
 ## Run it locally
 
@@ -77,7 +93,7 @@ Open <http://localhost:3000>. Sign in at `/account/login` with the admin email a
 | `npm run dev:css` | Rebuild the CSS on every change while developing |
 | `npm run migrate` | Apply database migrations |
 | `npm run seed` | Load default settings, the admin user and sample data (safe to re-run) |
-| `npm test` | Unit tests for price, tax, coupon and shipping maths |
+| `npm test` | Unit tests for price, tax, coupon, shipping, alert and PayPal amount maths |
 
 Only re-run `npm run build` when you change templates or `src/styles/app.css`, and commit the result.
 
@@ -123,6 +139,8 @@ In the deployment form use **Import .env**, or add each variable by hand. Every 
 | `SMTP_USER`, `SMTP_PASSWORD` | The mailbox from step 6 |
 | `MAIL_FROM` | `"Blessing African Market <orders@yourdomain.ca>"` |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | From step 7 |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE` | From step 7. Leave the first two empty to hide PayPal. Mode is `sandbox` or `live`. |
+| `MAIL_TRANSPORT` | Leave as `smtp`. (`log` is for local development: emails go to the log instead of being sent.) |
 | `UPLOAD_DIR` | An absolute folder outside the app folder, e.g. `/home/u123456789/blessing-data/uploads` |
 | `LOG_DIR` | Optional, e.g. `/home/u123456789/blessing-data/logs` |
 | `CRON_TOKEN` | A random string for step 8 |
@@ -185,6 +203,17 @@ products with placeholder artwork, banners, York Region delivery zones, shipping
 An order is marked paid only when Stripe calls the webhook with a valid signature. If the webhook is not registered,
 card orders stay "Pending" and are cancelled after two hours.
 
+**PayPal (optional)**
+
+1. Sign in at <https://developer.paypal.com> with the store's PayPal Business account -> **Apps & Credentials**.
+2. Create an app. Copy the **Client ID** and **Secret** into `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`.
+3. Use the **Sandbox** credentials with `PAYPAL_MODE=sandbox` while testing, then the **Live** credentials with
+   `PAYPAL_MODE=live`. Redeploy after each change.
+
+No webhook is needed. The customer approves the payment at PayPal, comes back to the site, and the store captures
+the payment directly with PayPal and checks the amount before marking the order paid. If the customer approves but
+closes the window before returning, the hourly cron job finds the payment and completes the order.
+
 ### 8. Set up the cron job
 
 hPanel -> **Advanced** -> **Cron Jobs** -> create a job that runs every hour:
@@ -193,8 +222,9 @@ hPanel -> **Advanced** -> **Cron Jobs** -> create a job that runs every hour:
 curl -fsS "https://<domain>/cron/cleanup?token=<CRON_TOKEN>" > /dev/null
 ```
 
-It deletes abandoned guest carts (14 days), expired sessions and used tokens, and cancels card orders that were
-never paid so their stock goes back on sale. A wrong or missing token gets a 403.
+It deletes abandoned guest carts (14 days), expired sessions and used tokens, cancels card and PayPal orders that
+were never paid so their stock goes back on sale, and sends the alerts and reminders listed above. A wrong or missing
+token gets a 403. Hourly is the right frequency: reminders are sent at most once each, however often it runs.
 
 ### 9. Back up the database and uploads
 
@@ -232,12 +262,17 @@ otherwise run `npm run migrate` over SSH.
 - [ ] Test order: **pickup + pay in store**. Move it through Processing -> Ready for pickup -> Completed.
 - [ ] Test order: **local delivery + Interac e-Transfer**. Mark it Paid in admin.
 - [ ] Test order: **shipping + card** with Stripe test card `4242 4242 4242 4242`. Confirm it turns Paid by itself.
+- [ ] Test order with **PayPal** using a sandbox buyer account (developer.paypal.com -> Sandbox -> Accounts).
 - [ ] Add a frozen item and confirm shipping is blocked with the item named.
 - [ ] Cancel a test order and confirm the stock returns.
 - [ ] Confirm the customer and the store both receive emails for the orders above.
 - [ ] Open the cron URL once in a browser and confirm it returns `{"ok":true,...}`.
 - [ ] **Switch Stripe to live:** replace `STRIPE_SECRET_KEY` with the `sk_live_...` key, add the webhook endpoint
       again in live mode, update `STRIPE_WEBHOOK_SECRET`, redeploy. Settings should show "Stripe LIVE".
+- [ ] **Switch PayPal to live:** put the Live Client ID and Secret in the environment, set `PAYPAL_MODE=live`,
+      redeploy. Settings should show "PayPal LIVE".
+- [ ] Admin -> Settings: review **Alerts for the store** and **Reminders for customers**, and decide whether unpaid
+      e-Transfer orders should cancel automatically (off by default).
 - [ ] Delete the test orders' stock effects if needed (Inventory) and remove test customers.
 - [ ] Submit `https://<domain>/sitemap.xml` to Google Search Console.
 
@@ -247,6 +282,8 @@ otherwise run `npm run migrate` over SSH.
   shipped -> completed, plus cancelled and refunded. Every change can email the customer. Cancelling returns the
   items to stock.
 - **e-Transfer orders** start as "Awaiting payment". When the transfer arrives, set the status to Paid.
+- **Payment amount mismatch:** in the rare case Stripe or PayPal reports a different amount than the order total,
+  the order is parked as "Awaiting payment" with a note. Check the payment account, then mark it Paid or refund it.
 - **Pay-in-store orders** start as "Pending". Payment is recorded automatically when the order is marked Completed.
 - **Refunds:** refund the money in Stripe (or by e-Transfer / in store), then set the order to Refunded.
 - **Staff vs admin:** staff can use orders, products, categories, brands and inventory. Admins can do everything.
@@ -273,14 +310,15 @@ All amounts are integer cents. Everything is calculated on the server in `src/se
 ```
 server.js            entry file: optional auto-migrate, then listen on process.env.PORT
 knexfile.js          database config shared by the app, migrations and seeds
-migrations/          schema (4 files)
+migrations/          schema (5 files)
 seeds/               settings + admin, catalogue, zones/slots/pages; data in seeds/data
 src/app.js           Express app: security headers, static files, sessions, CSRF, routes
 src/config/          env, db, session, mail, stripe, logger, adminResources (CRUD definitions)
 src/lib/             money, dates, slug, html sanitising, placeholder artwork
 src/middleware/      auth, roles, csrf, validation (zod), rate limits, uploads, flash, locals, errors
 src/models/          settings, categories, products, users, orders, reviews, content, audit
-src/services/        pricing, tax, coupon, shipping, cart, checkout, order, inventory, mail, image, csv, cleanup
+src/services/        pricing, tax, coupon, shipping, cart, checkout, order, inventory, paypal, notifications,
+                     mail, image, csv, cleanup
 src/controllers/     storefront, cart, checkout, auth, account, webhook, seo, admin/*
 src/routes/          store, cart, checkout, account, admin, webhooks, cron, seo
 src/views/           layouts, partials, store, account, admin, emails, errors
@@ -301,7 +339,7 @@ InnoDB, utf8mb4, foreign keys throughout, money as integer cents.
 | --- | --- |
 | Identity | `users`, `user_tokens` (hashed verify/reset tokens), `addresses`, `sessions`, `audit_logs`, `settings` |
 | Catalogue | `categories` (department -> category -> subcategory), `brands`, `products` (FULLTEXT index), `product_images`, `product_variants`, `product_tags`, `inventory_logs` |
-| Selling | `carts`, `cart_items`, `wishlists`, `coupons`, `coupon_redemptions`, `delivery_zones`, `shipping_rates`, `pickup_slots` |
+| Selling | `carts`, `cart_items`, `wishlists`, `stock_alerts`, `coupons`, `coupon_redemptions`, `delivery_zones`, `shipping_rates`, `pickup_slots` |
 | Orders | `orders`, `order_items`, `order_status_history`, `payments`, `reviews` |
 | Content | `pages`, `banners`, `faqs`, `newsletter_subscribers`, `contact_messages` |
 
@@ -318,6 +356,8 @@ InnoDB, utf8mb4, foreign keys throughout, money as integer cents.
   header that prevents script execution.
 - Stripe webhooks are verified against the signing secret using the raw request body, and the paid amount is checked
   against the order total.
+- PayPal payments are captured server-to-server. The order is marked paid only from PayPal's own capture response,
+  after checking it belongs to that order and matches the total and currency.
 - Password reset and email verification tokens are stored only as SHA-256 hashes and are single-use.
 
 ## Assumptions
@@ -346,4 +386,14 @@ InnoDB, utf8mb4, foreign keys throughout, money as integer cents.
 12. **Reviews** can be written once per product by a signed-in customer with a paid or completed order containing
     it, and appear after admin approval.
 13. **Rate limits** are held in memory, which suits a single Node.js process. They reset when the app restarts.
-14. **Map:** the home and contact pages embed a Google Maps iframe for the store address, which needs no API key.
+14. **PayPal** uses the redirect flow (no PayPal script on the site) and charges the order total as one amount.
+    PayPal's own "Pay Later" and card options appear on PayPal's page where the account supports them.
+15. **Reminder emails and CASL:** abandoned-cart reminders go only to signed-in customers who subscribed to the
+    newsletter or ordered in the last two years, once per cart, with a one-click opt-out. Review requests go only
+    to account holders and respect the same opt-out. Order, pickup and payment reminders are transactional.
+    Guests are never sent cart reminders.
+16. **Unpaid e-Transfer orders** are reminded after 24 hours and are not cancelled automatically unless you set a
+    number of hours in Settings.
+17. **Low-stock alerts** are sent once, when an order takes an item across its threshold. The daily summary lists
+    everything that is still low.
+18. **Map:** the home and contact pages embed a Google Maps iframe for the store address, which needs no API key.

@@ -27,6 +27,7 @@ router.use((req, res, next) => {
 router.get('/', asyncHandler(dashboard.index));
 
 router.get('/orders', asyncHandler(orders.list));
+router.get('/orders/export.csv', asyncHandler(orders.exportCsv));
 router.get('/orders/:id', asyncHandler(orders.detail));
 router.get('/orders/:id/invoice', asyncHandler(orders.print('invoice')));
 router.get('/orders/:id/packing-slip', asyncHandler(orders.print('packing')));

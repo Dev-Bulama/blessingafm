@@ -1,0 +1,11 @@
+<div class="container-site max-w-md py-10">
+  <h1 class="h-display text-4xl">Track your order</h1>
+  <p class="mt-2 text-neutral-800">Enter the order number from your confirmation email and the email address you used at checkout.</p>
+  <form action="/track-order" method="post" class="panel mt-6 space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('../partials/field', { name: 'order_number', label: 'Order number', required: true, attrs: 'placeholder="BAM-100123" autocapitalize="characters"' }) %>
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', required: true, autocomplete: 'email' }) %>
+    <button type="submit" class="btn-primary btn-block">Find my order</button>
+  </form>
+  <p class="mt-6 text-center text-sm">Have an account? <a href="/account/orders" class="link">See all your orders</a>.</p>
+</div>

@@ -14,6 +14,7 @@
   <ul class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
     <li><%- ok(status.smtp, 'Email configured', 'Email not configured') %> <%= status.smtp ? `${status.smtpUser} via ${status.smtpHost}` : 'Set the SMTP_* environment variables.' %></li>
     <li><%- ok(status.stripe, status.stripeLive ? 'Stripe LIVE' : 'Stripe TEST mode', 'Stripe not configured') %> <%= status.stripe ? '' : 'Set STRIPE_SECRET_KEY.' %></li>
+    <li><%- ok(status.paypal, status.paypalLive ? 'PayPal LIVE' : 'PayPal SANDBOX mode', 'PayPal not configured') %> <%= status.paypal ? '' : 'Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET to offer PayPal.' %></li>
     <li><%- ok(status.stripeWebhook, 'Webhook secret set', 'Webhook secret missing') %> <%= status.appUrl %>/webhooks/stripe</li>
     <li><%- ok(status.cron, 'Cron token set', 'Cron token missing') %> <%= status.appUrl %>/cron/cleanup?token=&hellip;</li>
     <li><%- ok(status.sharp, 'Image conversion on', 'Image conversion off') %> <%= status.sharp ? 'Uploads become WebP with thumbnails.' : 'sharp is not installed; uploads are stored as-is.' %></li>
@@ -87,10 +88,31 @@
   <fieldset class="panel space-y-4">
     <legend class="px-1 font-bold uppercase tracking-wide">Payment methods</legend>
     <%- check('payment_stripe_enabled', 'Card, Apple Pay and Google Pay (Stripe Checkout)') %>
+    <%- check('payment_paypal_enabled', 'PayPal') %>
     <%- check('payment_etransfer_enabled', 'Interac e-Transfer (manual confirmation)') %>
     <%- check('payment_instore_enabled', 'Pay in store (pickup orders only)') %>
     <%- text('etransfer_email', 'e-Transfer recipient email', { type: 'email', help: 'Customers send their payment to this address.' }) %>
     <div><label class="label" for="s-etransfer_instructions">e-Transfer instructions</label><textarea id="s-etransfer_instructions" name="etransfer_instructions" rows="3" maxlength="1000" class="input"><%= v('etransfer_instructions') %></textarea></div>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Alerts for the store</legend>
+    <%- check('notify_low_stock', 'Email me as soon as an order takes an item down to its low-stock level') %>
+    <%- check('notify_daily_summary', 'Email me a daily summary each morning: orders to prepare, pickups today, unpaid e-Transfers, low stock') %>
+    <p class="help">Sent to the "new-order emails" address above. The low-stock level is set on each product.</p>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Reminders for customers</legend>
+    <%- check('remind_pickup', 'Pickup reminder on the day before and the day of pickup') %>
+    <%- check('remind_etransfer', 'Payment reminder when an e-Transfer order is still unpaid after 24 hours') %>
+    <%- text('etransfer_cancel_hours', 'Cancel unpaid e-Transfer orders after (hours)', { type: 'number', attrs: 'min="0" max="720"', help: '0 = never cancel automatically. 48 or 72 are common. The customer is emailed and the stock is returned.' }) %>
+    <%- check('remind_abandoned_cart', 'Abandoned cart reminder for signed-in customers who left items in their cart') %>
+    <%- text('abandoned_cart_hours', 'Send the cart reminder after (hours)', { type: 'number', attrs: 'min="1" max="168"', help: 'One email per cart. Only sent to newsletter subscribers and customers who ordered in the last two years, with an opt-out link.' }) %>
+    <%- check('remind_review', 'Ask customers for a review after their order is completed') %>
+    <%- text('review_request_days', 'Send the review request after (days)', { type: 'number', attrs: 'min="1" max="60"' }) %>
+    <%- check('back_in_stock_enabled', 'Let customers ask for an email when a sold-out item is back in stock') %>
+    <p class="help">Reminders are sent by the hourly cron job and need a working email setup.</p>
   </fieldset>
 
   <button type="submit" class="btn-primary">Save settings</button>

@@ -39,6 +39,18 @@ const DEFAULTS = {
   etransfer_email: 'placeholder@example.com',
   etransfer_instructions: 'Send an Interac e-Transfer for the order total to the email address above and put your order number in the message. We will start preparing your order as soon as the transfer is accepted. Orders not paid within 48 hours may be cancelled.',
   order_notify_email: '',
+  payment_paypal_enabled: '1',
+  notify_low_stock: '1',
+  notify_daily_summary: '1',
+  remind_abandoned_cart: '1',
+  abandoned_cart_hours: '24',
+  remind_pickup: '1',
+  remind_etransfer: '1',
+  etransfer_cancel_hours: '0',
+  remind_review: '1',
+  review_request_days: '5',
+  back_in_stock_enabled: '1',
+  last_daily_summary_date: '',
 };
 
 exports.seed = async function seed(knex) {

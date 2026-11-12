@@ -360,6 +360,12 @@
       span.className = stock <= 0 || stock <= 5 ? 'text-brand-red-dark' : 'text-brand-green-dark';
       span.textContent = stock <= 0 ? 'Sold out' : stock <= 5 ? 'Only ' + stock + ' left in stock' : 'In stock';
       status.appendChild(span);
+      var notify = $('[data-notify]');
+      if (notify) {
+        notify.hidden = stock > 0;
+        $('[data-notify-variant]', notify).value = radio.value;
+        $('[data-notify-status]', notify).textContent = '';
+      }
     };
     $$('[data-variant]', productForm).forEach(function (radio) {
       radio.addEventListener('change', function () { if (radio.checked) applyVariant(radio); });
@@ -406,6 +412,24 @@
         form.querySelector('button').setAttribute('aria-pressed', data.saved ? 'true' : 'false');
         showToast(data.message);
       }).catch(function () { form.submit(); });
+    });
+  });
+
+  /* ---------- Back-in-stock request and copy-link button ---------- */
+  $$('[data-notify]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      postForm(form).then(function (data) {
+        $('[data-notify-status]', form).textContent = data.message || (data.ok ? 'Done.' : 'Please enter a valid email address.');
+      }).catch(function () { form.submit(); });
+    });
+  });
+  $$('[data-copy-link]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var url = btn.getAttribute('data-copy-link');
+      var done = function () { showToast('Link copied.'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copy this link', url); });
+      else window.prompt('Copy this link', url);
     });
   });
 

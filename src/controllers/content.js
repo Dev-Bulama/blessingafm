@@ -91,4 +91,14 @@ async function unsubscribe(req, res) {
   });
 }
 
-module.exports = { page, faq, contact, contactSchema, sendContact, newsletterSchema, subscribe, unsubscribe };
+/** GET /email/unsubscribe/:id/:sig - one-click opt-out from reminder emails (signed link, no login needed) */
+async function unsubscribeReminders(req, res) {
+  const id = Number(req.params.id) || 0;
+  if (id && Mail.verifyUnsubscribe(id, req.params.sig)) await db('users').where({ id }).update({ marketing_opt_out: true });
+  res.render('store/message', {
+    title: 'Email preferences updated', noindex: true, heading: 'You will not get reminder emails',
+    text: 'We have turned off cart reminders and review requests for your account. You will still receive emails about your orders.',
+  });
+}
+
+module.exports = { unsubscribeReminders, page, faq, contact, contactSchema, sendContact, newsletterSchema, subscribe, unsubscribe };

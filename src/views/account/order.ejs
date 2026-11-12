@@ -6,7 +6,7 @@
 </div>
 <p class="mt-1 text-sm text-neutral-700">Placed <%= dates.formatDateTime(order.created_at) %></p>
 
-<% if (order.payment_method === 'stripe' && order.status === 'pending' && order.payment_status === 'unpaid') { %>
+<% if (['stripe', 'paypal'].includes(order.payment_method) && order.status === 'pending' && order.payment_status === 'unpaid') { %>
   <form action="/order/<%= order.order_number %>/pay" method="post" class="alert-info mt-4 flex flex-wrap items-center justify-between gap-3">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <p>This order has not been paid yet.</p><button type="submit" class="btn-primary btn-sm">Pay <%= money(order.total_cents) %> now</button>

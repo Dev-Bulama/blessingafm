@@ -60,4 +60,9 @@ async function setStock({ productId, variantId = null, newQty, reason = 'adjustm
   return trx ? run(trx) : db.transaction(run);
 }
 
-module.exports = { OutOfStockError, adjust, setStock };
+/** True when a stock decrease takes an item from above its low-stock threshold to at or below it. */
+function crossedLowStock(before, after, threshold) {
+  return after < before && before > threshold && after <= threshold;
+}
+
+module.exports = { OutOfStockError, adjust, setStock, crossedLowStock };

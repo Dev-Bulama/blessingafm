@@ -9,6 +9,8 @@ const Checkout = require('./checkout');
 const Inventory = require('./inventory');
 const Mail = require('./mail');
 const { getStripe } = require('../config/stripe');
+const Paypal = require('./paypal');
+const Setting = require('../models/setting');
 const { formatPostal } = require('./shipping');
 
 class CheckoutError extends Error {
@@ -36,6 +38,7 @@ async function placeOrder({ req, input, settings }) {
     throw new CheckoutError('That payment method is not available for this order.');
   }
 
+  const lowStock = [];
   const orderId = await db.transaction(async (trx) => {
     const cart = await trx('carts').where({ id: cartId }).forUpdate().first();
     const items = await Cart.loadItems(cartId, trx);
@@ -130,10 +133,14 @@ async function placeOrder({ req, input, settings }) {
     // Take stock. Sorted by id so concurrent orders always lock rows in the same order.
     const sorted = [...items].sort((a, b) => a.product_id - b.product_id || (a.variant_id || 0) - (b.variant_id || 0));
     for (const item of sorted) {
-      await Inventory.adjust(trx, {
+      const after = await Inventory.adjust(trx, {
         productId: item.product_id, variantId: item.variant_id, delta: -item.qty, reason: 'order',
         note: orderNumber, orderId: id, userId: req.user ? req.user.id : null, label: itemLabel(item),
       });
+      const { low_stock_threshold: threshold } = await trx('products').where({ id: item.product_id }).first('low_stock_threshold');
+      if (Inventory.crossedLowStock(after + item.qty, after, threshold)) {
+        lowStock.push({ product_id: item.product_id, name: itemLabel(item), sku: item.sku, stock_qty: after, threshold });
+      }
       await trx('products').where({ id: item.product_id }).increment('sales_count', item.qty);
     }
 
@@ -150,8 +157,11 @@ async function placeOrder({ req, input, settings }) {
   });
 
   const order = await Order.findById(orderId);
-  // Card orders are confirmed by email once Stripe tells us the payment succeeded.
-  if (order.payment_method !== 'stripe') notifyPlaced(order);
+  // Card and PayPal orders are confirmed by email once the payment itself is confirmed.
+  if (!Order.ONLINE_METHODS.includes(order.payment_method)) notifyPlaced(order);
+  if (lowStock.length && Setting.isOn(settings, 'notify_low_stock')) {
+    Mail.sendLowStockAlert(lowStock, order).catch((err) => logger.error('low stock email failed', err));
+  }
   return order;
 }
 
@@ -191,6 +201,7 @@ async function changeStatus(orderId, status, { userId = null, note = '', notify 
       throw new CheckoutError(`An order that is "${Order.STATUS_LABELS[order.status]}" cannot be moved to "${Order.STATUS_LABELS[status]}".`);
     }
     const update = { status };
+    if (status === 'completed') update.completed_at = new Date();
     // "Paid" is recorded when staff confirm an e-Transfer, and automatically when a
     // pay-in-store order is completed (the customer paid at the counter).
     const becomesPaid = order.payment_status === 'unpaid'
@@ -256,27 +267,24 @@ async function createStripeSession(order) {
 }
 
 /**
- * Mark an order paid from a verified Stripe `checkout.session.completed` event.
- * Idempotent: Stripe may deliver the same event more than once.
+ * Record a confirmed online payment (Stripe webhook or PayPal capture) and mark the order paid.
+ * Idempotent: the same payment may be reported more than once.
  */
-async function markPaidFromStripe(session) {
-  const orderId = Number(session.client_reference_id || (session.metadata && session.metadata.order_id));
-  if (!orderId) return null;
-  if (session.payment_status !== 'paid') return null; // delayed payment methods confirm via async_payment_succeeded
-  const ref = String(session.payment_intent || session.id);
-
+async function markPaidOnline(orderId, { provider, ref, amountCents, currency }) {
   const result = await db.transaction(async (trx) => {
     const order = await trx('orders').where({ id: orderId }).forUpdate().first();
     if (!order || order.payment_status === 'paid') return { order, changed: false };
-    if (session.amount_total !== order.total_cents || String(session.currency).toLowerCase() !== 'cad') {
-      logger.error(`Stripe amount mismatch for ${order.order_number}: got ${session.amount_total} ${session.currency}, expected ${order.total_cents} cad`);
-      await trx('order_status_history').insert({
-        order_id: order.id, status: order.status, note: `Stripe payment ${ref} amount mismatch - review manually`,
-      });
-      return { order, changed: false };
+    if (amountCents !== order.total_cents || String(currency).toLowerCase() !== 'cad') {
+      logger.error(`${provider} amount mismatch for ${order.order_number}: got ${amountCents} ${currency}, expected ${order.total_cents} cad`);
+      // Money was taken but for the wrong amount. Park the order where staff will see it and where the
+      // automatic clean-up will not cancel it; a person decides whether to accept or refund.
+      const note = `${provider} payment ${ref} of ${(amountCents / 100).toFixed(2)} ${String(currency).toUpperCase()} does not match the order total - check the ${provider === 'paypal' ? 'PayPal' : 'Stripe'} account, then mark Paid or refund and cancel`;
+      if (order.status === 'pending') await trx('orders').where({ id: order.id }).update({ status: 'awaiting_payment' });
+      await trx('order_status_history').insert({ order_id: order.id, status: order.status === 'pending' ? 'awaiting_payment' : order.status, note });
+      return { order, changed: false, mismatch: true };
     }
     await trx('payments').insert({
-      order_id: order.id, provider: 'stripe', provider_ref: ref, amount_cents: session.amount_total, status: 'succeeded',
+      order_id: order.id, provider, provider_ref: ref, amount_cents: amountCents, status: 'succeeded',
     }).onConflict(['provider', 'provider_ref']).ignore();
     if (order.status === 'cancelled') {
       // Paid after the order was auto-cancelled and restocked: flag for staff rather than guess.
@@ -287,20 +295,58 @@ async function markPaidFromStripe(session) {
       return { order, changed: false, late: true };
     }
     await trx('orders').where({ id: order.id }).update({ status: 'paid', payment_status: 'paid', paid_at: new Date() });
-    await trx('order_status_history').insert({ order_id: order.id, status: 'paid', note: 'Payment confirmed by Stripe', customer_notified: true });
+    await trx('order_status_history').insert({
+      order_id: order.id, status: 'paid', note: `Payment confirmed by ${provider === 'paypal' ? 'PayPal' : 'Stripe'}`, customer_notified: true,
+    });
     return { order, changed: true };
   });
-
   if (result.changed) notifyPlaced(await Order.findById(orderId));
   return result;
 }
 
-/** Cancel an unpaid card order (Stripe session expired or abandoned) and return its stock. */
-async function cancelUnpaidStripeOrder(orderId, note) {
+/** Mark an order paid from a verified Stripe `checkout.session.completed` event. */
+async function markPaidFromStripe(session) {
+  const orderId = Number(session.client_reference_id || (session.metadata && session.metadata.order_id));
+  if (!orderId) return null;
+  if (session.payment_status !== 'paid') return null; // delayed payment methods confirm via async_payment_succeeded
+  return markPaidOnline(orderId, {
+    provider: 'stripe', ref: String(session.payment_intent || session.id), amountCents: session.amount_total, currency: session.currency,
+  });
+}
+
+/** Create the PayPal order for a store order and remember its id. Returns the approval URL. */
+async function createPaypalOrder(order, storeName) {
+  if (!Paypal.isConfigured()) throw new CheckoutError('PayPal is not available right now. Please choose another payment method.');
+  const qs = `o=${order.order_number}&t=${order.access_token}`;
+  const pp = await Paypal.createOrder(order, {
+    brandName: storeName, returnUrl: `${env.appUrl}/checkout/paypal/return?${qs}`, cancelUrl: `${env.appUrl}/order/${order.order_number}?t=${order.access_token}&cancelled=1`,
+  });
+  await db('orders').where({ id: order.id }).update({ paypal_order_id: pp.id });
+  return pp.approveUrl;
+}
+
+/**
+ * Capture an approved PayPal order and mark the store order paid. Everything is checked against
+ * PayPal's own response: capture status, the order it belongs to, amount and currency.
+ * @returns {Promise<'paid'|'pending'|'failed'>}
+ */
+async function capturePaypal(order) {
+  if (!order.paypal_order_id) return 'failed';
+  if (order.payment_status === 'paid') return 'paid';
+  const pp = await Paypal.capture(order.paypal_order_id);
+  if (pp.orderId !== order.id || !pp.capture) return 'failed';
+  if (pp.capture.status === 'PENDING') return 'pending'; // e.g. eCheque: confirmed later by the hourly check
+  if (pp.capture.status !== 'COMPLETED') return 'failed';
+  const result = await markPaidOnline(order.id, { provider: 'paypal', ref: pp.capture.id, amountCents: pp.capture.amountCents, currency: pp.capture.currency });
+  return result.mismatch ? 'failed' : 'paid';
+}
+
+/** Cancel an unpaid card/PayPal order (payment abandoned or expired) and return its stock. */
+async function cancelUnpaidOnlineOrder(orderId, note) {
   const order = await db('orders').where({ id: orderId }).first();
-  if (!order || order.payment_method !== 'stripe' || order.status !== 'pending' || order.payment_status !== 'unpaid') return false;
+  if (!order || !Order.ONLINE_METHODS.includes(order.payment_method) || order.status !== 'pending' || order.payment_status !== 'unpaid') return false;
   await changeStatus(orderId, 'cancelled', { note, notify: false, system: true });
   return true;
 }
 
-module.exports = { CheckoutError, placeOrder, changeStatus, createStripeSession, markPaidFromStripe, cancelUnpaidStripeOrder, restock };
+module.exports = { CheckoutError, placeOrder, changeStatus, createStripeSession, markPaidOnline, markPaidFromStripe, createPaypalOrder, capturePaypal, cancelUnpaidOnlineOrder, cancelUnpaidStripeOrder: cancelUnpaidOnlineOrder, restock };

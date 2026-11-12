@@ -43,7 +43,8 @@
   }
 
   function syncButton() {
-    placeLabel.textContent = payment() === 'stripe' ? 'Continue to secure payment' : 'Place order';
+    var pm = payment();
+    placeLabel.textContent = pm === 'stripe' ? 'Continue to secure payment' : pm === 'paypal' ? 'Continue to PayPal' : 'Place order';
     placeBtn.disabled = !quoteOk;
   }
 

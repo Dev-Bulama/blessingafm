@@ -18,7 +18,8 @@ const STATUS_LABELS = {
 };
 
 const FULFILMENT_LABELS = { pickup: 'In-store pickup', delivery: 'Local delivery', shipping: 'Canada-wide shipping' };
-const PAYMENT_LABELS = { stripe: 'Card (Stripe)', etransfer: 'Interac e-Transfer', in_store: 'Pay in store' };
+const ONLINE_METHODS = ['stripe', 'paypal'];
+const PAYMENT_LABELS = { stripe: 'Card (Stripe)', paypal: 'PayPal', etransfer: 'Interac e-Transfer', in_store: 'Pay in store' };
 
 /** Allowed next statuses, given the current status and fulfilment method. */
 function nextStatuses(order) {
@@ -64,4 +65,4 @@ async function withDetails(order) {
 const findById = async (id) => withDetails(await db('orders').where({ id }).first());
 const findByNumber = async (orderNumber) => withDetails(await db('orders').where({ order_number: orderNumber }).first());
 
-module.exports = { STATUSES, STATUS_LABELS, FULFILMENT_LABELS, PAYMENT_LABELS, nextStatuses, trackerSteps, findById, findByNumber };
+module.exports = { ONLINE_METHODS, STATUSES, STATUS_LABELS, FULFILMENT_LABELS, PAYMENT_LABELS, nextStatuses, trackerSteps, findById, findByNumber };

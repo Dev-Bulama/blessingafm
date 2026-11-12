@@ -73,7 +73,7 @@ module.exports = [
 <h2>Information we collect</h2>
 <ul>
 <li><strong>Account and order details:</strong> your name, email address, phone number, delivery address and order history.</li>
-<li><strong>Payment information:</strong> card payments are processed by Stripe on Stripe's own secure pages. We never see or store your full card number. We keep a record of the payment status and reference.</li>
+<li><strong>Payment information:</strong> card payments are processed by Stripe and PayPal payments by PayPal, on their own secure pages. We never see or store your full card number. We keep a record of the payment status and reference.</li>
 <li><strong>Messages:</strong> anything you send us through the contact form, reviews you write, and your newsletter subscription.</li>
 <li><strong>Technical data:</strong> a session cookie that keeps you signed in and remembers your cart, and standard server logs (IP address, browser type, pages requested) used for security and troubleshooting.</li>
 </ul>
@@ -82,11 +82,13 @@ module.exports = [
 <li>To process, deliver and support your orders, and to contact you about them.</li>
 <li>To manage your account, wishlist and saved addresses.</li>
 <li>To send our newsletter if you have subscribed. Every newsletter includes an unsubscribe link.</li>
+<li>To send reminders about your orders (pickup and payment reminders), and, if you have an account, an occasional reminder about items left in your cart or an invitation to review a purchase. Cart and review reminders include a link to turn them off.</li>
+<li>To send a one-time email when an item you asked about is back in stock.</li>
 <li>To prevent fraud and keep the website secure.</li>
 <li>To meet our legal, tax and accounting obligations.</li>
 </ul>
 <h2>Who we share it with</h2>
-<p>We do not sell your personal information. We share it only with service providers who need it to do their work for us: our payment processor (Stripe), our website and email hosting provider, and delivery or courier partners for orders you ask us to deliver or ship. We may also disclose information where the law requires it.</p>
+<p>We do not sell your personal information. We share it only with service providers who need it to do their work for us: our payment processors (Stripe and PayPal), our website and email hosting provider, and delivery or courier partners for orders you ask us to deliver or ship. We may also disclose information where the law requires it.</p>
 <h2>Cookies</h2>
 <p>This site uses one essential cookie to maintain your session (sign-in and cart). We do not use advertising cookies.</p>
 <h2>How long we keep it</h2>
@@ -109,7 +111,7 @@ module.exports = [
 <h2>Prices and tax</h2>
 <p>All prices are in Canadian dollars. Ontario HST is added at checkout to taxable items only; basic groceries are zero-rated. Prices and availability can change without notice, but the price you are charged is the price shown when you place your order.</p>
 <h2>Payment</h2>
-<p>You can pay by card through Stripe, by Interac e-Transfer, or in store for pickup orders. Orders paid by e-Transfer are prepared once we receive and accept the transfer. Unpaid e-Transfer orders may be cancelled after 48 hours.</p>
+<p>You can pay by card through Stripe, by PayPal, by Interac e-Transfer, or in store for pickup orders. Orders paid by e-Transfer are prepared once we receive and accept the transfer. Unpaid e-Transfer orders may be cancelled after 48 hours.</p>
 <h2>Pickup, delivery and shipping</h2>
 <p>Please see our Shipping &amp; Delivery page. Pickup orders not collected within three days of the chosen pickup date may be cancelled; perishable items cannot be held and may not be refundable. Risk in the goods passes to you when you collect them or when they are delivered to the address you gave us.</p>
 <h2>Product information</h2>
