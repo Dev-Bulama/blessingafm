@@ -1,0 +1,24 @@
+<%# Items + totals + fulfilment for a placed order. Usage: include('../partials/order-summary', { order }) %>
+<div class="overflow-x-auto">
+  <table class="table">
+    <caption class="sr-only">Items in order <%= order.order_number %></caption>
+    <thead><tr><th scope="col">Item</th><th scope="col" class="text-right">Price</th><th scope="col" class="text-right">Qty</th><th scope="col" class="text-right">Total</th></tr></thead>
+    <tbody>
+      <% order.items.forEach((i) => { %>
+        <tr>
+          <td><span class="font-semibold"><%= i.name %></span><% if (i.variant_name) { %> <span class="text-neutral-700">(<%= i.variant_name %>)</span><% } %><span class="block text-xs text-neutral-600">SKU <%= i.sku %><%= i.is_taxable ? '' : ' · zero-rated' %></span></td>
+          <td class="text-right"><%= money(i.unit_price_cents) %></td>
+          <td class="text-right"><%= i.qty %></td>
+          <td class="text-right font-semibold"><%= money(i.line_subtotal_cents) %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<dl class="ml-auto mt-4 max-w-xs space-y-1 text-sm">
+  <div class="flex justify-between"><dt>Subtotal</dt><dd><%= money(order.subtotal_cents) %></dd></div>
+  <% if (order.discount_cents) { %><div class="flex justify-between text-brand-green-dark"><dt>Discount<%= order.coupon_code ? ` (${order.coupon_code})` : '' %></dt><dd>-<%= money(order.discount_cents) %></dd></div><% } %>
+  <div class="flex justify-between gap-4"><dt><%= order.shipping_label || FULFILMENT_LABELS[order.fulfilment_method] %></dt><dd><%= order.shipping_cents ? money(order.shipping_cents) : 'Free' %></dd></div>
+  <div class="flex justify-between"><dt><%= order.tax_label %> (<%= bpsToPercentLabel(order.tax_rate_bps) %>) on taxable items</dt><dd><%= money(order.tax_cents) %></dd></div>
+  <div class="flex items-baseline justify-between border-t-2 border-brand-black pt-2"><dt class="font-bold uppercase">Total (CAD)</dt><dd class="font-display text-2xl tracking-wide"><%= money(order.total_cents) %></dd></div>
+</dl>

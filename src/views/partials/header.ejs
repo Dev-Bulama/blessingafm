@@ -1,0 +1,100 @@
+<% if (settings.announcement_enabled === '1' && settings.announcement_text) { %>
+  <div class="on-dark bg-brand-black px-4 py-2 text-center text-sm font-semibold text-white"><%= settings.announcement_text %></div>
+<% } %>
+<header class="sticky top-0 z-30 border-b-2 border-brand-black bg-white" data-site-header>
+  <div class="container-site flex items-center gap-3 py-2">
+    <button type="button" class="rounded p-2 lg:hidden" data-menu-open aria-controls="mobile-menu" aria-expanded="false" aria-label="Open menu"><%- include('icons', { icon: 'menu', cls: 'h-7 w-7' }) %></button>
+    <a href="/" class="no-underline" aria-label="<%= settings.store_name %> - home"><%- include('logo') %></a>
+
+    <%# Search (desktop inline, mobile below) %>
+    <form action="/search" method="get" role="search" class="relative mx-4 hidden flex-1 md:block" data-search>
+      <label for="search-desktop" class="sr-only">Search products</label>
+      <input id="search-desktop" type="search" name="q" value="<%= typeof searchQuery !== 'undefined' && searchQuery ? searchQuery : '' %>" placeholder="Search garri, palm oil, braiding hair&hellip;" autocomplete="off" class="input pr-12"
+             role="combobox" aria-expanded="false" aria-controls="suggest-desktop" aria-autocomplete="list" data-search-input>
+      <button type="submit" class="absolute right-1 top-1 flex h-9 w-10 items-center justify-center rounded bg-brand-red text-white" aria-label="Search"><%- include('icons', { icon: 'search', cls: 'h-5 w-5' }) %></button>
+      <ul id="suggest-desktop" role="listbox" class="absolute left-0 right-0 top-full z-50 mt-1 hidden overflow-hidden rounded-lg border-2 border-brand-black bg-white shadow-xl" data-search-results></ul>
+    </form>
+
+    <div class="ml-auto flex items-center gap-1 sm:gap-2">
+      <a href="<%= currentUser ? '/account' : '/account/login' %>" class="flex min-h-[44px] items-center gap-2 rounded px-2 text-sm font-bold no-underline hover:bg-brand-yellow-soft">
+        <%- include('icons', { icon: 'user' }) %><span class="hidden sm:inline"><%= currentUser ? `Hi, ${currentUser.first_name}` : 'Sign in' %></span><span class="sr-only sm:hidden"><%= currentUser ? 'My account' : 'Sign in' %></span>
+      </a>
+      <% if (isAdminUser) { %><a href="/admin" class="btn-dark btn-sm hidden sm:inline-flex">Admin</a><% } %>
+      <a href="/cart" class="relative flex min-h-[44px] items-center gap-2 rounded bg-brand-yellow px-3 text-sm font-bold text-brand-black no-underline hover:bg-brand-yellow-soft" data-cart-open aria-haspopup="dialog">
+        <%- include('icons', { icon: 'cart' }) %><span class="hidden sm:inline">Cart</span>
+        <span class="flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-brand-red px-1 text-xs font-bold text-white" data-cart-count aria-hidden="true"><%= cartCount %></span>
+        <span class="sr-only" data-cart-count-label><%= cartCount %> item<%= cartCount === 1 ? '' : 's' %> in cart</span>
+      </a>
+    </div>
+  </div>
+
+  <form action="/search" method="get" role="search" class="container-site relative pb-2 md:hidden" data-search>
+    <label for="search-mobile" class="sr-only">Search products</label>
+    <input id="search-mobile" type="search" name="q" value="<%= typeof searchQuery !== 'undefined' && searchQuery ? searchQuery : '' %>" placeholder="Search products&hellip;" autocomplete="off" class="input pr-12"
+           role="combobox" aria-expanded="false" aria-controls="suggest-mobile" aria-autocomplete="list" data-search-input>
+    <button type="submit" class="absolute right-5 top-1 flex h-9 w-10 items-center justify-center rounded bg-brand-red text-white sm:right-7" aria-label="Search"><%- include('icons', { icon: 'search', cls: 'h-5 w-5' }) %></button>
+    <ul id="suggest-mobile" role="listbox" class="absolute left-4 right-4 top-full z-50 hidden overflow-hidden rounded-lg border-2 border-brand-black bg-white shadow-xl" data-search-results></ul>
+  </form>
+
+  <%# Desktop navigation with mega menus %>
+  <nav class="on-dark relative hidden bg-brand-red lg:block" aria-label="Main">
+    <ul class="container-site flex items-stretch">
+      <% nav.roots.forEach((dept) => { %>
+        <li class="mega-item" data-mega>
+          <a href="/c/<%= dept.slug %>" class="nav-link gap-1" aria-haspopup="true" aria-expanded="false" data-mega-trigger><%= dept.name %><%- include('icons', { icon: 'chevron', cls: 'h-4 w-4' }) %></a>
+          <div class="mega" data-mega-panel>
+            <div class="container-site grid grid-cols-4 gap-x-8 gap-y-6 py-6">
+              <% dept.children.forEach((cat) => { %>
+                <div>
+                  <a href="/c/<%= cat.slug %>" class="font-display text-lg uppercase tracking-wide text-brand-red no-underline hover:underline"><%= cat.name %></a>
+                  <ul class="mt-2 space-y-1.5 text-sm">
+                    <% cat.children.forEach((sub) => { %><li><a href="/c/<%= sub.slug %>" class="no-underline hover:underline"><%= sub.name %></a></li><% }) %>
+                  </ul>
+                </div>
+              <% }) %>
+              <div class="col-span-4 border-t border-neutral-200 pt-3"><a href="/c/<%= dept.slug %>" class="link">Shop all <%= dept.name %> &rarr;</a></div>
+            </div>
+          </div>
+        </li>
+      <% }) %>
+      <li><a href="/shop?deal=1" class="nav-link">Deals</a></li>
+      <li><a href="/shop?sort=newest" class="nav-link">New arrivals</a></li>
+      <li><a href="/shop?sort=popular" class="nav-link">Best sellers</a></li>
+      <li class="ml-auto"><a href="/about" class="nav-link">About</a></li>
+      <li><a href="/contact" class="nav-link">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<%# Mobile menu %>
+<div class="drawer-backdrop" data-menu-backdrop hidden></div>
+<div id="mobile-menu" class="mobile-menu lg:hidden" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true" tabindex="-1">
+  <div class="on-dark flex items-center justify-between bg-brand-red px-4 py-3 text-white">
+    <span class="h-display text-2xl">Menu</span>
+    <button type="button" class="rounded p-2" data-menu-close aria-label="Close menu"><%- include('icons', { icon: 'close' }) %></button>
+  </div>
+  <nav aria-label="Mobile" class="p-4">
+    <% nav.roots.forEach((dept) => { %>
+      <p class="mt-2 font-display text-xl uppercase tracking-wide text-brand-red"><a href="/c/<%= dept.slug %>" class="no-underline"><%= dept.name %></a></p>
+      <% dept.children.forEach((cat) => { %>
+        <details class="border-b border-neutral-200">
+          <summary class="flex min-h-[44px] items-center justify-between py-2 font-bold"><%= cat.name %><%- include('icons', { icon: 'chevron', cls: 'h-5 w-5' }) %></summary>
+          <ul class="pb-3 pl-3">
+            <li><a href="/c/<%= cat.slug %>" class="block py-2 font-semibold text-brand-red">All <%= cat.name %></a></li>
+            <% cat.children.forEach((sub) => { %><li><a href="/c/<%= sub.slug %>" class="block py-2 no-underline"><%= sub.name %></a></li><% }) %>
+          </ul>
+        </details>
+      <% }) %>
+    <% }) %>
+    <ul class="mt-4 space-y-1 font-bold">
+      <li><a href="/shop?deal=1" class="block py-2 no-underline">Deals of the week</a></li>
+      <li><a href="/shop?sort=newest" class="block py-2 no-underline">New arrivals</a></li>
+      <li><a href="/shop?sort=popular" class="block py-2 no-underline">Best sellers</a></li>
+      <li><a href="/about" class="block py-2 no-underline">About us</a></li>
+      <li><a href="/contact" class="block py-2 no-underline">Contact</a></li>
+      <li><a href="/faq" class="block py-2 no-underline">FAQ</a></li>
+      <li><a href="<%= currentUser ? '/account' : '/account/login' %>" class="block py-2 no-underline"><%= currentUser ? 'My account' : 'Sign in / Register' %></a></li>
+      <% if (isAdminUser) { %><li><a href="/admin" class="block py-2 no-underline">Admin panel</a></li><% } %>
+    </ul>
+  </nav>
+</div>

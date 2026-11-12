@@ -1,0 +1,10 @@
+<%# Address, hours and contact details from settings. `dark` switches link colours for the footer. %>
+<% const _link = typeof dark !== 'undefined' && dark ? 'text-white underline hover:text-brand-yellow' : 'link'; const _mapQ = encodeURIComponent(`${settings.store_address_line1}, ${settings.store_city}, ${settings.store_province}, Canada`); %>
+<ul class="space-y-3 text-sm">
+  <li class="flex gap-3"><%- include('icons', { icon: 'pin', cls: 'mt-0.5 h-5 w-5 shrink-0' }) %>
+    <span><%= settings.store_address_line1 %><br><%= settings.store_city %>, <%= PROVINCES[settings.store_province] || settings.store_province %><% if (settings.store_postal_code && !settings.store_postal_code.includes('PLACEHOLDER')) { %> <%= settings.store_postal_code %><% } %><br>
+      <a class="<%= _link %>" href="https://www.google.com/maps/search/?api=1&query=<%= _mapQ %>" target="_blank" rel="noopener noreferrer">Get directions<span class="sr-only"> (opens in a new tab)</span></a></span></li>
+  <% if (settings.store_phone) { %><li class="flex gap-3"><%- include('icons', { icon: 'phone', cls: 'mt-0.5 h-5 w-5 shrink-0' }) %><a class="<%= _link %>" href="tel:<%= digits(settings.store_phone) %>"><%= settings.store_phone %></a></li><% } %>
+  <% if (settings.store_email) { %><li class="flex gap-3"><%- include('icons', { icon: 'mail', cls: 'mt-0.5 h-5 w-5 shrink-0' }) %><a class="<%= _link %> break-all" href="mailto:<%= settings.store_email %>"><%= settings.store_email %></a></li><% } %>
+  <% if (settings.store_hours) { %><li class="flex gap-3"><%- include('icons', { icon: 'clock', cls: 'mt-0.5 h-5 w-5 shrink-0' }) %><span><% settings.store_hours.split(/\r?\n/).filter(Boolean).forEach((line) => { %><span class="block"><%= line %></span><% }) %></span></li><% } %>
+</ul>

@@ -1,0 +1,19 @@
+<div class="container-site max-w-lg py-10">
+  <h1 class="h-display text-4xl">Create an account</h1>
+  <p class="mt-2 text-neutral-800">Track your orders, save addresses and build a wishlist.</p>
+  <form action="/account/register" method="post" class="panel mt-6 space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- include('../partials/field', { name: 'first_name', label: 'First name', required: true, autocomplete: 'given-name' }) %>
+      <%- include('../partials/field', { name: 'last_name', label: 'Last name', required: true, autocomplete: 'family-name' }) %>
+    </div>
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', required: true, autocomplete: 'email' }) %>
+    <%- include('../partials/field', { name: 'phone', label: 'Phone (optional)', type: 'tel', autocomplete: 'tel' }) %>
+    <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', required: true, autocomplete: 'new-password', help: 'At least 10 characters.', attrs: 'minlength="10"' }) %>
+    <%- include('../partials/field', { name: 'password_confirm', label: 'Confirm password', type: 'password', required: true, autocomplete: 'new-password' }) %>
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="newsletter" value="1" class="checkbox">Email me deals and new arrivals</label>
+    <button type="submit" class="btn-primary btn-block">Create account</button>
+    <p class="text-xs text-neutral-700">By creating an account you agree to our <a href="/terms" class="link">terms</a> and <a href="/privacy-policy" class="link">privacy policy</a>.</p>
+  </form>
+  <p class="mt-6 text-center">Already have an account? <a href="/account/login" class="link">Sign in</a></p>
+</div>

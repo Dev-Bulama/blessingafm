@@ -1,0 +1,5 @@
+<%- include('../partials/account-shell-top') %>
+<h1 class="h-display text-4xl">My orders</h1>
+<div class="mt-5"><%- include('../partials/orders-table', { orders }) %></div>
+<%- include('../partials/pagination', { page, pages, hrefFor: (n) => `/account/orders?page=${n}` }) %>
+<%- include('../partials/account-shell-bottom') %>

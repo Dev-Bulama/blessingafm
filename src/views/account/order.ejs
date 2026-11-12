@@ -1,0 +1,37 @@
+<%- include('../partials/account-shell-top') %>
+<p class="text-sm"><a href="/account/orders" class="link">&larr; All orders</a></p>
+<div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="h-display text-4xl">Order <%= order.order_number %></h1>
+  <span class="status status-<%= order.status %>"><%= STATUS_LABELS[order.status] %></span>
+</div>
+<p class="mt-1 text-sm text-neutral-700">Placed <%= dates.formatDateTime(order.created_at) %></p>
+
+<% if (order.payment_method === 'stripe' && order.status === 'pending' && order.payment_status === 'unpaid') { %>
+  <form action="/order/<%= order.order_number %>/pay" method="post" class="alert-info mt-4 flex flex-wrap items-center justify-between gap-3">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <p>This order has not been paid yet.</p><button type="submit" class="btn-primary btn-sm">Pay <%= money(order.total_cents) %> now</button>
+  </form>
+<% } %>
+<% if (order.payment_method === 'etransfer' && order.status === 'awaiting_payment') { %>
+  <p class="alert-info mt-4">Send an Interac e-Transfer for <strong><%= money(order.total_cents) %></strong> to <strong><%= settings.etransfer_email %></strong> with <strong><%= order.order_number %></strong> in the message.</p>
+<% } %>
+
+<section class="mt-5" aria-label="Order status"><%- include('../partials/order-tracker', { order, steps }) %></section>
+
+<section class="mt-5" aria-labelledby="history-title">
+  <h2 id="history-title" class="font-bold uppercase tracking-wide">Status history</h2>
+  <ol class="mt-2 space-y-1 border-l-4 border-brand-yellow pl-4 text-sm">
+    <% order.history.filter((h) => h.customer_notified).forEach((h) => { %>
+      <li><span class="font-bold"><%= STATUS_LABELS[h.status] || h.status %></span> <span class="text-neutral-700">&middot; <%= dates.formatDateTime(h.created_at) %></span><% if (h.note) { %><span class="block text-neutral-800"><%= h.note %></span><% } %></li>
+    <% }) %>
+  </ol>
+</section>
+
+<section class="mt-5" aria-label="Fulfilment and payment"><%- include('../partials/order-fulfilment', { order }) %></section>
+<section class="mt-5" aria-label="Order items"><%- include('../partials/order-summary', { order }) %></section>
+
+<div class="mt-6 flex flex-wrap gap-3">
+  <a href="/order/<%= order.order_number %>/invoice" target="_blank" class="btn-outline">Print invoice</a>
+  <form action="/account/orders/<%= order.order_number %>/reorder" method="post"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn-primary">Reorder these items</button></form>
+</div>
+<%- include('../partials/account-shell-bottom') %>

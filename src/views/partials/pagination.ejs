@@ -1,0 +1,14 @@
+<%# Usage: include('../partials/pagination', { page, pages, hrefFor: (n) => '...' }) %>
+<% if (pages > 1) { %>
+<nav aria-label="Pagination" class="mt-8 flex flex-wrap items-center justify-center gap-2">
+  <% if (page > 1) { %><a class="btn-outline btn-sm" href="<%= hrefFor(page - 1) %>" rel="prev">&larr; Previous</a><% } %>
+  <% const from = Math.max(1, page - 2); const to = Math.min(pages, page + 2); %>
+  <% if (from > 1) { %><a class="btn-outline btn-sm" href="<%= hrefFor(1) %>">1</a><% if (from > 2) { %><span aria-hidden="true">&hellip;</span><% } %><% } %>
+  <% for (let n = from; n <= to; n += 1) { %>
+    <% if (n === page) { %><span class="btn-dark btn-sm" aria-current="page"><span class="sr-only">Page </span><%= n %></span>
+    <% } else { %><a class="btn-outline btn-sm" href="<%= hrefFor(n) %>"><span class="sr-only">Page </span><%= n %></a><% } %>
+  <% } %>
+  <% if (to < pages) { %><% if (to < pages - 1) { %><span aria-hidden="true">&hellip;</span><% } %><a class="btn-outline btn-sm" href="<%= hrefFor(pages) %>"><%= pages %></a><% } %>
+  <% if (page < pages) { %><a class="btn-outline btn-sm" href="<%= hrefFor(page + 1) %>" rel="next">Next &rarr;</a><% } %>
+</nav>
+<% } %>

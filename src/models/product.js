@@ -75,6 +75,14 @@ async function list(filters = {}, { sort = 'newest', page = 1, perPage = 24 } = 
   return { rows, total: Number(total), page, perPage, pages: Math.max(1, Math.ceil(Number(total) / perPage)) };
 }
 
+/** A short unpaginated strip of products (home page rows): no COUNT query. */
+async function top(filters = {}, sort = 'newest', limit = 8) {
+  const order = (SORTS[sort] || SORTS.newest).map(([column, o]) => ({ column, order: o }));
+  const rows = await applyFilters(db('products as p').leftJoin('brands as b', 'b.id', 'p.brand_id'), filters)
+    .select(LIST_COLUMNS).orderBy(order).limit(limit);
+  return attachImages(rows);
+}
+
 /** Brands that have products matching the filters (for the filter sidebar). */
 async function brandFacets(filters) {
   const f = { ...filters, brandIds: null };
@@ -163,6 +171,6 @@ async function refreshRating(productId, trx = db) {
 }
 
 module.exports = {
-  SORTS, list, brandFacets, suggestions, findBySlug, findById, related, attachImages, syncVariantAggregates,
+  SORTS, list, top, brandFacets, suggestions, findBySlug, findById, related, attachImages, syncVariantAggregates,
   rebuildSearchKeywords, setTags, refreshRating, applyFilters, LIST_COLUMNS,
 };

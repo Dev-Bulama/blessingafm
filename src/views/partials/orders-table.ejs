@@ -1,0 +1,22 @@
+<% if (!orders.length) { %>
+  <p class="panel text-neutral-800">You have not placed any orders yet. <a href="/shop" class="link">Start shopping</a>.</p>
+<% } else { %>
+  <div class="overflow-x-auto rounded-xl border-2 border-brand-black">
+    <table class="table">
+      <caption class="sr-only">Your orders</caption>
+      <thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col">Method</th><th scope="col" class="text-right">Total</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <% orders.forEach((o) => { %>
+          <tr>
+            <td class="font-bold"><a href="/account/orders/<%= o.order_number %>"><%= o.order_number %></a></td>
+            <td class="whitespace-nowrap"><%= dates.formatDate(o.created_at) %></td>
+            <td><span class="status status-<%= o.status %>"><%= STATUS_LABELS[o.status] %></span></td>
+            <td><%= FULFILMENT_LABELS[o.fulfilment_method] %></td>
+            <td class="text-right font-semibold"><%= money(o.total_cents) %></td>
+            <td class="text-right"><a href="/account/orders/<%= o.order_number %>" class="btn-outline btn-sm">View<span class="sr-only"> order <%= o.order_number %></span></a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>

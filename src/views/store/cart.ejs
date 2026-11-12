@@ -1,0 +1,91 @@
+<div class="container-site py-6">
+  <h1 class="h-display text-4xl sm:text-5xl">Your cart</h1>
+
+  <% if (!cart.items.length) { %>
+    <div class="panel mt-6 text-center">
+      <%- include('../partials/icons', { icon: 'cart', cls: 'mx-auto h-14 w-14 text-neutral-400' }) %>
+      <p class="mt-3 text-lg font-bold">Your cart is empty</p>
+      <p class="text-neutral-700">Add some groceries or beauty products to get started.</p>
+      <div class="mt-4 flex flex-wrap justify-center gap-3">
+        <% nav.roots.forEach((d, i) => { %><a href="/c/<%= d.slug %>" class="<%= i === 0 ? 'btn-primary' : 'btn-yellow' %>">Shop <%= d.name %></a><% }) %>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_380px]">
+      <section aria-label="Cart items">
+        <% if (cart.hasProblems) { %><p class="alert-error mb-4" role="alert">Some items need attention before you can check out. Please update or remove them.</p><% } %>
+        <ul class="divide-y-2 divide-neutral-200 border-y-2 border-brand-black">
+          <% cart.items.forEach((item) => { %>
+            <li class="flex gap-4 py-4">
+              <a href="/p/<%= item.slug %>" class="shrink-0" tabindex="-1" aria-hidden="true"><img src="<%= upload(item.thumb) %>" alt="" width="96" height="96" loading="lazy" class="h-24 w-24 rounded-lg border-2 border-brand-black object-cover"></a>
+              <div class="min-w-0 flex-1">
+                <div class="flex justify-between gap-3">
+                  <div>
+                    <a href="/p/<%= item.slug %>" class="font-bold no-underline hover:underline"><%= item.name %></a>
+                    <% if (item.variant_name) { %><p class="text-sm text-neutral-700"><%= item.variant_label || 'Option' %>: <%= item.variant_name %></p><% } %>
+                    <p class="text-sm text-neutral-700"><%= money(item.unit_price_cents) %> each<%= item.is_taxable ? '' : ' · no HST' %></p>
+                    <p class="mt-1 flex flex-wrap gap-1">
+                      <% if (item.is_frozen) { %><span class="badge-blue">Frozen</span><% } %>
+                      <% if (item.is_perishable && !item.is_frozen) { %><span class="badge-yellow">Perishable</span><% } %>
+                      <% if (item.pickup_only) { %><span class="badge-dark">Pickup only</span><% } %>
+                    </p>
+                    <% if (item.problem) { %><p class="mt-1 text-sm font-bold text-brand-red-dark" role="alert"><%= item.problem %></p><% } %>
+                  </div>
+                  <p class="shrink-0 text-lg font-bold"><%= money(item.line_cents) %></p>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center gap-3">
+                  <form action="/cart/update" method="post" class="flex items-center gap-2">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="item_id" value="<%= item.item_id %>">
+                    <div class="flex items-center rounded-lg border-2 border-brand-black" data-stepper>
+                      <button type="button" class="h-10 w-10 text-lg font-bold" data-step="-1" aria-label="Decrease quantity of <%= item.name %>">&minus;</button>
+                      <input type="number" name="qty" value="<%= item.qty %>" min="0" max="<%= Math.max(item.stock, 1) %>" inputmode="numeric" class="h-10 w-12 border-x-2 border-brand-black text-center font-bold" aria-label="Quantity of <%= item.name %>" data-auto-submit>
+                      <button type="button" class="h-10 w-10 text-lg font-bold" data-step="1" aria-label="Increase quantity of <%= item.name %>">+</button>
+                    </div>
+                    <noscript><button type="submit" class="btn-outline btn-sm">Update</button></noscript>
+                  </form>
+                  <form action="/cart/remove" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="item_id" value="<%= item.item_id %>">
+                    <button type="submit" class="text-sm font-semibold text-brand-red-dark underline">Remove<span class="sr-only"> <%= item.name %></span></button>
+                  </form>
+                </div>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+        <a href="/shop" class="link mt-4 inline-block">&larr; Continue shopping</a>
+      </section>
+
+      <aside class="h-fit rounded-xl border-4 border-brand-black bg-brand-cream p-5" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="h-display text-2xl">Order summary</h2>
+        <div class="mt-4"><%- include('../partials/totals', { quote, showShipping: false }) %></div>
+
+        <div class="mt-5 border-t border-neutral-300 pt-4">
+          <% if (quote.coupon) { %>
+            <form action="/cart/coupon/remove" method="post" class="flex items-center justify-between gap-3">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <p class="text-sm"><span class="badge-green"><%= quote.coupon.code %></span> applied</p>
+              <button type="submit" class="text-sm font-semibold underline">Remove coupon</button>
+            </form>
+          <% } else { %>
+            <% if (cart.coupon_code && quote.coupon_error) { %><p class="field-error mb-2">Coupon <%= cart.coupon_code %>: <%= quote.coupon_error %></p><% } %>
+            <form action="/cart/coupon" method="post" class="flex gap-2">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label for="coupon" class="sr-only">Coupon code</label>
+              <input id="coupon" type="text" name="code" placeholder="Coupon code" class="input flex-1 uppercase" maxlength="40" autocomplete="off" required>
+              <button type="submit" class="btn-dark">Apply</button>
+            </form>
+          <% } %>
+        </div>
+
+        <% if (cart.hasProblems) { %>
+          <button type="button" class="btn-primary btn-block mt-5" disabled>Checkout</button>
+        <% } else { %>
+          <a href="/checkout" class="btn-primary btn-block mt-5 text-base shadow-hard-sm">Checkout</a>
+        <% } %>
+        <p class="mt-3 text-center text-xs text-neutral-700">Pay by card, Interac e-Transfer, or in store on pickup.</p>
+      </aside>
+    </div>
+  <% } %>
+</div>

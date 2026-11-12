@@ -1,0 +1,6 @@
+<%# Star rating. Usage: include('../partials/stars', { rating: 4.5, count: 12 }) %>
+<% const r = Math.round(Number(rating) || 0); %>
+<span class="stars" role="img" aria-label="Rated <%= Number(rating).toFixed(1) %> out of 5">
+  <% for (let i = 1; i <= 5; i += 1) { %><svg class="h-4 w-4" viewBox="0 0 20 20" fill="<%= i <= r ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 1.800l2.500 5.200 5.700.800-4.100 4 1 5.600L10 14.700l-5.100 2.700 1-5.600-4.100-4 5.700-.800z"/></svg><% } %>
+</span>
+<% if (typeof count !== 'undefined' && count !== null) { %><span class="ml-1 text-xs text-neutral-700">(<%= count %>)</span><% } %>

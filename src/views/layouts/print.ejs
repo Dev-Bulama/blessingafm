@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= title %> | <%= settings.store_name %></title>
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="<%= asset('css/app.css') %>">
+</head>
+<body class="bg-neutral-100 print:bg-white">
+  <div class="no-print mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+    <button type="button" class="link" data-back>&larr; Back</button>
+    <button type="button" class="btn-primary" data-print>Print</button>
+  </div>
+  <main class="mx-auto max-w-3xl bg-white p-8 shadow print:max-w-none print:p-0 print:shadow-none">
+    <%- body %>
+  </main>
+  <script src="<%= asset('js/print.js') %>" defer></script>
+</body>
+</html>

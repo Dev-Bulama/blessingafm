@@ -1,0 +1,19 @@
+<%# Order summary lines from a checkout quote. Usage: include('../partials/totals', { quote, showShipping }) %>
+<% const t = quote.totals; %>
+<dl class="space-y-2 text-sm" data-totals>
+  <div class="flex justify-between"><dt>Subtotal</dt><dd class="font-semibold" data-t="subtotal"><%= money(t.subtotal_cents) %></dd></div>
+  <div class="flex justify-between text-brand-green-dark <%= t.discount_cents ? '' : 'hidden' %>" data-row="discount">
+    <dt>Discount<% if (quote.coupon) { %> (<span data-t="coupon_code"><%= quote.coupon.code %></span>)<% } %></dt>
+    <dd class="font-semibold" data-t="discount">-<%= money(t.discount_cents) %></dd>
+  </div>
+  <% if (showShipping) { %>
+    <div class="flex justify-between gap-4"><dt data-t="shipping_label"><%= quote.shipping_label || 'Delivery' %></dt><dd class="font-semibold" data-t="shipping"><%= quote.ok ? (t.shipping_cents ? money(t.shipping_cents) : 'Free') : '-' %></dd></div>
+  <% } else { %>
+    <div class="flex justify-between gap-4 text-neutral-700"><dt>Pickup, delivery or shipping</dt><dd>Chosen at checkout</dd></div>
+  <% } %>
+  <div class="flex justify-between"><dt><span data-t="tax_label"><%= quote.tax_label %></span> <span class="text-neutral-600">on taxable items</span></dt><dd class="font-semibold" data-t="tax"><%= money(t.tax_cents) %></dd></div>
+  <div class="flex items-baseline justify-between border-t-2 border-brand-black pt-3 text-base">
+    <dt class="font-bold uppercase"><%= showShipping ? 'Total' : 'Estimated total' %></dt>
+    <dd class="font-display text-3xl tracking-wide" data-t="total"><%= money(t.total_cents) %></dd>
+  </div>
+</dl>

@@ -1,0 +1,17 @@
+<%- include('../partials/account-shell-top') %>
+<h1 class="h-display text-4xl">Hello, <%= currentUser.first_name %></h1>
+<% if (!currentUser.email_verified_at) { %>
+  <div class="alert-info mt-4 flex flex-wrap items-center justify-between gap-3">
+    <p>Please confirm your email address. We sent a link to <%= currentUser.email %>.</p>
+    <form action="/account/verify/resend" method="post"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn-dark btn-sm">Resend email</button></form>
+  </div>
+<% } %>
+<ul class="mt-5 grid grid-cols-3 gap-3">
+  <li><a href="/account/orders" class="stat block no-underline hover:bg-brand-yellow-soft"><span class="block font-display text-4xl"><%= stats.orders %></span><span class="text-sm font-bold uppercase">Orders</span></a></li>
+  <li><a href="/account/wishlist" class="stat block no-underline hover:bg-brand-yellow-soft"><span class="block font-display text-4xl"><%= stats.wishlist %></span><span class="text-sm font-bold uppercase">Wishlist</span></a></li>
+  <li><a href="/account/addresses" class="stat block no-underline hover:bg-brand-yellow-soft"><span class="block font-display text-4xl"><%= stats.addresses %></span><span class="text-sm font-bold uppercase">Addresses</span></a></li>
+</ul>
+<h2 class="section-title mt-8 text-2xl sm:text-3xl">Recent orders</h2>
+<div class="mt-4"><%- include('../partials/orders-table', { orders }) %></div>
+<% if (stats.orders > orders.length) { %><p class="mt-3"><a href="/account/orders" class="link">View all orders &rarr;</a></p><% } %>
+<%- include('../partials/account-shell-bottom') %>

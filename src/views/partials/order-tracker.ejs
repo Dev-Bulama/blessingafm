@@ -1,0 +1,13 @@
+<%# Status tracker. Usage: include('../partials/order-tracker', { order, steps }) %>
+<% if (order.status === 'cancelled' || order.status === 'refunded') { %>
+  <p class="alert-error">This order was <%= order.status %>.</p>
+<% } else { %>
+  <ol class="grid gap-2 sm:grid-flow-col sm:auto-cols-fr" aria-label="Order progress">
+    <% steps.forEach((s, i) => { %>
+      <li class="flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-bold <%= s.current ? 'border-brand-black bg-brand-yellow' : s.done ? 'border-brand-green-dark bg-green-50 text-green-900' : 'border-neutral-300 text-neutral-600' %>" <%= s.current ? 'aria-current=step' : '' %>>
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full <%= s.done ? 'bg-brand-green-dark text-white' : 'bg-neutral-200 text-neutral-700' %> text-xs"><% if (s.done && !s.current) { %><%- include('icons', { icon: 'check', cls: 'h-4 w-4' }) %><% } else { %><%= i + 1 %><% } %></span>
+        <%= s.label %><% if (s.done && !s.current) { %><span class="sr-only"> (done)</span><% } %>
+      </li>
+    <% }) %>
+  </ol>
+<% } %>

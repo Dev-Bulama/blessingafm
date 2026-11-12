@@ -1,0 +1,19 @@
+<%- include('../partials/account-shell-top') %>
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="h-display text-4xl">Address book</h1>
+  <a href="/account/addresses/new" class="btn-primary">Add address</a>
+</div>
+<% if (!addresses.length) { %><p class="panel mt-5 text-neutral-800">You have no saved addresses yet.</p><% } %>
+<ul class="mt-5 grid gap-4 sm:grid-cols-2">
+  <% addresses.forEach((a) => { %>
+    <li class="panel">
+      <p class="flex items-center gap-2 font-bold"><%= a.label || 'Address' %><% if (a.is_default) { %><span class="badge-green">Default</span><% } %></p>
+      <address class="mt-2 text-sm not-italic"><%= a.full_name %><br><%= a.line1 %><% if (a.line2) { %><br><%= a.line2 %><% } %><br><%= a.city %>, <%= a.province %> <%= a.postal_code %><% if (a.phone) { %><br><%= a.phone %><% } %></address>
+      <div class="mt-3 flex gap-2">
+        <a href="/account/addresses/<%= a.id %>/edit" class="btn-outline btn-sm">Edit<span class="sr-only"> <%= a.line1 %></span></a>
+        <form action="/account/addresses/<%= a.id %>/delete" method="post" data-confirm="Remove this address?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn-outline btn-sm">Remove<span class="sr-only"> <%= a.line1 %></span></button></form>
+      </div>
+    </li>
+  <% }) %>
+</ul>
+<%- include('../partials/account-shell-bottom') %>

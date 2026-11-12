@@ -1,0 +1,16 @@
+<%# Opens the two-column account layout. Close with account-shell-bottom. %>
+<div class="container-site py-6">
+  <div class="grid gap-6 lg:grid-cols-[240px_1fr]">
+    <nav aria-label="Account" class="h-fit rounded-xl border-2 border-brand-black bg-white p-2">
+      <p class="px-3 py-2 text-sm text-neutral-700">Signed in as<br><strong class="break-all text-brand-black"><%= currentUser.email %></strong></p>
+      <ul class="flex gap-1 overflow-x-auto lg:block lg:space-y-1">
+        <% [['dashboard', '/account', 'Dashboard'], ['orders', '/account/orders', 'Orders'], ['addresses', '/account/addresses', 'Addresses'], ['wishlist', '/account/wishlist', 'Wishlist'], ['profile', '/account/profile', 'Profile & password']].forEach(([key, url, label]) => { %>
+          <li><a href="<%= url %>" class="block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold no-underline <%= section === key ? 'bg-brand-black text-white' : 'hover:bg-brand-yellow-soft' %>" <%= section === key ? 'aria-current=page' : '' %>><%= label %></a></li>
+        <% }) %>
+        <li>
+          <form action="/account/logout" method="post"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-bold text-brand-red-dark hover:bg-red-50">Sign out</button></form>
+        </li>
+      </ul>
+    </nav>
+    <div class="min-w-0">

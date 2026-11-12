@@ -1,0 +1,10 @@
+<div class="container-site max-w-md py-10">
+  <h1 class="h-display text-4xl">Forgot password</h1>
+  <p class="mt-2 text-neutral-800">Enter your email address and we will send you a link to choose a new password.</p>
+  <form action="/account/forgot" method="post" class="panel mt-6 space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', required: true, autocomplete: 'email' }) %>
+    <button type="submit" class="btn-primary btn-block">Send reset link</button>
+  </form>
+  <p class="mt-6 text-center"><a href="/account/login" class="link">Back to sign in</a></p>
+</div>

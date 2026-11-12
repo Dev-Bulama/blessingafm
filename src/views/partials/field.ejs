@@ -1,0 +1,28 @@
+<%#
+  Labelled form field with old-input and error support.
+  Usage: include('../partials/field', { name, label, type, value, required, autocomplete, help, options, rows, attrs })
+%>
+<%
+  const _type = typeof type !== 'undefined' ? type : 'text';
+  const _err = errors[name];
+  const _val = old[name] !== undefined ? old[name] : (typeof value !== 'undefined' && value !== null ? value : '');
+  const _id = `f-${name}`;
+  const _req = typeof required !== 'undefined' && required;
+  const _help = typeof help !== 'undefined' ? help : null;
+  const _attrs = typeof attrs !== 'undefined' ? attrs : '';
+  const _describe = [_err ? `${_id}-err` : null, _help ? `${_id}-help` : null].filter(Boolean).join(' ');
+%>
+<div>
+  <label for="<%= _id %>" class="label"><%= label %><% if (_req) { %> <span class="text-brand-red-dark" aria-hidden="true">*</span><% } %></label>
+  <% if (_type === 'textarea') { %>
+    <textarea id="<%= _id %>" name="<%= name %>" rows="<%= typeof rows !== 'undefined' ? rows : 4 %>" class="input <%= _err ? 'input-error' : '' %>" <%= _req ? 'required' : '' %> <%- _describe ? `aria-describedby="${_describe}"` : '' %> <%= _err ? 'aria-invalid=true' : '' %> <%- _attrs %>><%= _val %></textarea>
+  <% } else if (_type === 'select') { %>
+    <select id="<%= _id %>" name="<%= name %>" class="input <%= _err ? 'input-error' : '' %>" <%= _req ? 'required' : '' %> <%- _describe ? `aria-describedby="${_describe}"` : '' %> <%- _attrs %>>
+      <% options.forEach(([v, l]) => { %><option value="<%= v %>" <%= String(_val) === String(v) ? 'selected' : '' %>><%= l %></option><% }) %>
+    </select>
+  <% } else { %>
+    <input id="<%= _id %>" type="<%= _type %>" name="<%= name %>" value="<%= _type === 'password' ? '' : _val %>" class="input <%= _err ? 'input-error' : '' %>" <%= _req ? 'required' : '' %> <%- typeof autocomplete !== 'undefined' ? `autocomplete="${autocomplete}"` : '' %> <%- _describe ? `aria-describedby="${_describe}"` : '' %> <%= _err ? 'aria-invalid=true' : '' %> <%- _attrs %>>
+  <% } %>
+  <% if (_help) { %><p id="<%= _id %>-help" class="help"><%= _help %></p><% } %>
+  <% if (_err) { %><p id="<%= _id %>-err" class="field-error"><%= _err %></p><% } %>
+</div>

@@ -1,0 +1,19 @@
+<%# Where/how the order is fulfilled + payment info. Usage: include('../partials/order-fulfilment', { order }) %>
+<div class="grid gap-4 sm:grid-cols-2">
+  <div class="panel">
+    <h2 class="font-bold uppercase tracking-wide"><%= FULFILMENT_LABELS[order.fulfilment_method] %></h2>
+    <% if (order.fulfilment_method === 'pickup') { %>
+      <p class="mt-2 text-sm"><strong><%= dates.formatYmd(order.pickup_date, true) %></strong><br><%= order.pickup_slot_label %></p>
+      <p class="mt-2 text-sm"><%= settings.store_address_line1 %>, <%= settings.store_city %>, <%= settings.store_province %></p>
+    <% } else { %>
+      <address class="mt-2 text-sm not-italic"><%= order.ship_name %><br><%= order.ship_line1 %><% if (order.ship_line2) { %><br><%= order.ship_line2 %><% } %><br><%= order.ship_city %>, <%= order.ship_province %> <%= order.ship_postal_code %></address>
+      <% if (order.tracking_number) { %><p class="mt-2 text-sm"><strong>Tracking:</strong> <%= order.tracking_carrier ? `${order.tracking_carrier} ` : '' %><%= order.tracking_number %></p><% } %>
+    <% } %>
+    <% if (order.customer_note) { %><p class="mt-2 text-sm"><strong>Your note:</strong> <%= order.customer_note %></p><% } %>
+  </div>
+  <div class="panel">
+    <h2 class="font-bold uppercase tracking-wide">Payment</h2>
+    <p class="mt-2 text-sm"><%= PAYMENT_LABELS[order.payment_method] %> &middot; <span class="font-bold <%= order.payment_status === 'paid' ? 'text-brand-green-dark' : '' %>"><%= order.payment_status === 'paid' ? 'Paid' : order.payment_status === 'refunded' ? 'Refunded' : 'Not yet paid' %></span><% if (order.paid_at) { %> on <%= dates.formatDate(order.paid_at) %><% } %></p>
+    <p class="mt-2 text-sm"><%= order.first_name %> <%= order.last_name %><br><%= order.email %><br><%= order.phone %></p>
+  </div>
+</div>

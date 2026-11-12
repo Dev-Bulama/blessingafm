@@ -1,0 +1,6 @@
+<% const flashMessages = takeFlash(); %>
+<div id="flash" class="container-site space-y-2 <%= flashMessages.length ? 'pt-4' : '' %>" aria-live="polite">
+  <% flashMessages.forEach((f) => { %>
+    <div class="<%= f.type === 'success' ? 'alert-success' : f.type === 'error' ? 'alert-error' : 'alert-info' %>" role="<%= f.type === 'error' ? 'alert' : 'status' %>"><%= f.message %></div>
+  <% }) %>
+</div>

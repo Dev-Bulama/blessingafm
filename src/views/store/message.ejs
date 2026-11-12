@@ -1,0 +1,5 @@
+<div class="container-site max-w-2xl py-16 text-center">
+  <h1 class="h-display text-4xl sm:text-5xl"><%= heading %></h1>
+  <p class="mt-4 text-lg text-neutral-800"><%= text %></p>
+  <a href="<%= typeof cta !== 'undefined' && cta ? cta.url : '/' %>" class="btn-primary mt-6"><%= typeof cta !== 'undefined' && cta ? cta.label : 'Back to the store' %></a>
+</div>

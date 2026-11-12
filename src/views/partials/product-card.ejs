@@ -1,0 +1,36 @@
+<%# Product card. Usage: include('../partials/product-card', { p }) %>
+<% const off = percentOff(p.price_cents, p.compare_at_cents); const soldOut = p.stock_qty <= 0; %>
+<article class="card group flex h-full flex-col overflow-hidden">
+  <a href="/p/<%= p.slug %>" class="relative block bg-neutral-100" tabindex="-1" aria-hidden="true">
+    <img src="<%= upload(p.thumb) %>" alt="" loading="lazy" decoding="async" width="480" height="480" class="aspect-square w-full object-cover transition group-hover:scale-105">
+    <span class="absolute left-2 top-2 flex flex-col items-start gap-1">
+      <% if (off > 0) { %><span class="badge-sale">Save <%= off %>%</span><% } %>
+      <% if (p.is_frozen) { %><span class="badge-blue">Frozen</span><% } %>
+      <% if (p.pickup_only) { %><span class="badge-dark">Pickup only</span><% } %>
+    </span>
+    <% if (soldOut) { %><span class="absolute inset-x-0 bottom-0 bg-brand-black py-1 text-center text-xs font-bold uppercase tracking-wide text-white">Sold out</span><% } %>
+  </a>
+  <div class="flex flex-1 flex-col p-3">
+    <% if (p.brand_name) { %><p class="text-xs font-semibold uppercase tracking-wide text-neutral-600"><%= p.brand_name %></p><% } %>
+    <h3 class="mt-0.5 text-sm font-bold leading-snug sm:text-base"><a href="/p/<%= p.slug %>" class="no-underline hover:underline"><%= p.name %></a></h3>
+    <% if (p.rating_count > 0) { %><div class="mt-1 flex items-center"><%- include('stars', { rating: p.rating_avg, count: p.rating_count }) %></div><% } %>
+    <div class="mt-auto pt-2">
+      <p class="flex flex-wrap items-baseline gap-x-2">
+        <span class="price-tag"><% if (p.has_variants) { %><span class="font-sans text-xs font-bold uppercase">From </span><% } %><%= money(p.price_cents) %></span>
+        <% if (off > 0) { %><s class="text-sm text-neutral-600"><span class="sr-only">Was </span><%= money(p.compare_at_cents) %></s><% } %>
+      </p>
+      <% if (soldOut) { %>
+        <a href="/p/<%= p.slug %>" class="btn-outline btn-sm btn-block mt-2">View details</a>
+      <% } else if (p.has_variants) { %>
+        <a href="/p/<%= p.slug %>" class="btn-dark btn-sm btn-block mt-2">Choose options<span class="sr-only"> for <%= p.name %></span></a>
+      <% } else { %>
+        <form action="/cart/add" method="post" class="mt-2" data-add-to-cart>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="product_id" value="<%= p.id %>">
+          <input type="hidden" name="qty" value="1">
+          <button type="submit" class="btn-primary btn-sm btn-block">Add to cart<span class="sr-only">: <%= p.name %></span></button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+</article>

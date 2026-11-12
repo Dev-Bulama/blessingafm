@@ -1,0 +1,13 @@
+<% if (typeof breadcrumbs !== 'undefined' && breadcrumbs.length) { %>
+<nav aria-label="Breadcrumb" class="text-sm">
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-neutral-700">
+    <li><a href="/" class="hover:underline">Home</a></li>
+    <% breadcrumbs.forEach((b, i) => { %>
+      <li class="flex items-center gap-2"><span aria-hidden="true">/</span>
+        <% if (i === breadcrumbs.length - 1 && typeof lastIsCurrent !== 'undefined' && lastIsCurrent) { %><span aria-current="page" class="font-semibold text-brand-black"><%= b.label %></span>
+        <% } else { %><a href="<%= b.url %>" class="hover:underline"><%= b.label %></a><% } %>
+      </li>
+    <% }) %>
+  </ol>
+</nav>
+<% } %>

@@ -1,0 +1,121 @@
+<%# ---------- Hero slider ---------- %>
+<% if (banners.length) { %>
+<section class="relative border-b-4 border-brand-black" aria-roledescription="carousel" aria-label="Featured promotions" data-hero>
+  <% banners.forEach((b, i) => { %>
+    <div class="hero-slide hero-<%= b.theme %> <%= b.theme === 'yellow' ? '' : 'on-dark' %> <%= i === 0 ? 'is-active' : '' %>" role="group" aria-roledescription="slide" aria-label="<%= i + 1 %> of <%= banners.length %>" data-hero-slide>
+      <div class="container-site grid items-center gap-6 py-10 sm:py-14 lg:grid-cols-2 lg:py-20">
+        <div>
+          <% if (i === 0) { %><h1 class="h-display text-5xl sm:text-6xl lg:text-7xl"><%= b.title %></h1><% } else { %><p class="h-display text-5xl sm:text-6xl lg:text-7xl"><%= b.title %></p><% } %>
+          <% if (b.subtitle) { %><p class="mt-4 max-w-xl text-lg font-semibold sm:text-xl"><%= b.subtitle %></p><% } %>
+          <% if (b.cta_label && b.cta_url) { %><a href="<%= b.cta_url %>" class="<%= b.theme === 'yellow' ? 'btn-primary' : 'btn-yellow' %> mt-6 shadow-hard"><%= b.cta_label %></a><% } %>
+        </div>
+        <% if (b.image) { %>
+          <img src="<%= upload(b.image) %>" alt="" <%= i === 0 ? 'fetchpriority=high' : 'loading=lazy' %> width="800" height="520" class="hidden max-h-80 w-full rounded-xl border-4 border-brand-black object-cover lg:block">
+        <% } else { %>
+          <div class="hidden justify-end lg:flex" aria-hidden="true">
+            <svg viewBox="0 0 104 112" class="h-64 w-auto drop-shadow-[6px_6px_0_#111111]"><path fill="<%= b.theme === 'red' ? '#FFD400' : '#D81E1E' %>" stroke="#111111" stroke-width="3" stroke-linejoin="round" d="M22 9 L34 5 L48 3 L52 10 L60 13 L67 10 L77 13 L80 21 L85 31 L90 38 L100 39 L94 50 L87 60 L85 70 L87 79 L81 89 L74 99 L63 108 L55 107 L52 93 L48 79 L47 70 L50 61 L48 56 L40 54 L30 56 L20 55 L11 50 L5 41 L4 32 L8 22 L15 13 Z"/></svg>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+  <% if (banners.length > 1) { %>
+    <div class="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-3">
+      <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-brand-black bg-white font-bold text-brand-black" data-hero-prev aria-label="Previous slide">&larr;</button>
+      <% banners.forEach((b, i) => { %><button type="button" class="h-3 w-3 rounded-full border-2 border-brand-black <%= i === 0 ? 'bg-brand-black' : 'bg-white' %>" data-hero-dot="<%= i %>" aria-label="Go to slide <%= i + 1 %>"></button><% }) %>
+      <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-brand-black bg-white font-bold text-brand-black" data-hero-next aria-label="Next slide">&rarr;</button>
+      <button type="button" class="rounded border-2 border-brand-black bg-white px-2 py-1 text-xs font-bold text-brand-black" data-hero-pause aria-pressed="false">Pause</button>
+    </div>
+  <% } %>
+</section>
+<% } %>
+
+<%# ---------- Service strip ---------- %>
+<section class="border-b-2 border-brand-black bg-brand-cream" aria-label="Ways to get your order">
+  <ul class="container-site grid gap-3 py-4 text-sm font-semibold sm:grid-cols-3">
+    <li class="flex items-center gap-3"><%- include('../partials/icons', { icon: 'bag', cls: 'h-7 w-7 shrink-0 text-brand-red' }) %>Free in-store pickup at 77 Davis Drive</li>
+    <li class="flex items-center gap-3"><%- include('../partials/icons', { icon: 'truck', cls: 'h-7 w-7 shrink-0 text-brand-red' }) %>Local delivery in Newmarket &amp; York Region</li>
+    <li class="flex items-center gap-3"><%- include('../partials/icons', { icon: 'box', cls: 'h-7 w-7 shrink-0 text-brand-red' }) %>Canada-wide shipping on pantry &amp; beauty</li>
+  </ul>
+</section>
+
+<%# ---------- Department tiles ---------- %>
+<section class="container-site py-10" aria-labelledby="departments-title">
+  <h2 id="departments-title" class="sr-only">Shop by department</h2>
+  <div class="grid gap-5 md:grid-cols-2">
+    <% nav.roots.forEach((dept, i) => { %>
+      <a href="/c/<%= dept.slug %>" class="group relative block overflow-hidden rounded-2xl border-4 border-brand-black no-underline shadow-hard <%= i % 2 === 0 ? 'bg-brand-yellow text-brand-black' : 'on-dark bg-brand-red text-white' %>">
+        <div class="flex min-h-[220px] flex-col justify-between p-6 sm:min-h-[260px] sm:p-8">
+          <div>
+            <p class="text-sm font-bold uppercase tracking-widest"><%= i % 2 === 0 ? 'Groceries' : 'Hair & beauty' %></p>
+            <p class="h-display mt-1 text-5xl sm:text-6xl"><%= dept.name %></p>
+            <p class="mt-3 max-w-md text-sm font-semibold sm:text-base"><%= dept.children.slice(0, 5).map((c) => c.name).join(' · ') %></p>
+          </div>
+          <span class="<%= i % 2 === 0 ? 'btn-primary' : 'btn-yellow' %> mt-6 self-start">Shop <%= dept.name %> &rarr;</span>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+</section>
+
+<%# ---------- Featured categories ---------- %>
+<% if (featuredCategories.length) { %>
+<section class="container-site pb-10" aria-labelledby="cats-title">
+  <h2 id="cats-title" class="section-title">Featured categories</h2>
+  <ul class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+    <% featuredCategories.forEach((c) => { %>
+      <li><a href="/c/<%= c.slug %>" class="card group block overflow-hidden no-underline hover:shadow-hard">
+        <img src="<%= upload(c.image) %>" alt="" loading="lazy" width="400" height="400" class="aspect-[4/3] w-full object-cover">
+        <span class="block border-t-2 border-brand-black bg-white px-3 py-2 text-sm font-bold uppercase tracking-wide group-hover:bg-brand-yellow"><%= c.name %></span>
+      </a></li>
+    <% }) %>
+  </ul>
+</section>
+<% } %>
+
+<%# ---------- Product rows ---------- %>
+<% const rows = [
+  { id: 'deals', title: 'Deals of the week', items: deals, more: '/shop?deal=1', band: true },
+  { id: 'best', title: 'Best sellers', items: bestSellers, more: '/shop?sort=popular' },
+  { id: 'new', title: 'New arrivals', items: newArrivals, more: '/shop?sort=newest' },
+]; %>
+<% rows.filter((r) => r.items.length).forEach((row) => { %>
+<section class="<%= row.band ? 'border-y-4 border-brand-black bg-brand-yellow' : '' %> py-10" aria-labelledby="<%= row.id %>-title">
+  <div class="container-site">
+    <div class="flex items-end justify-between gap-4">
+      <h2 id="<%= row.id %>-title" class="section-title"><%= row.title %></h2>
+      <a href="<%= row.more %>" class="shrink-0 text-sm font-bold uppercase tracking-wide <%= row.band ? 'text-brand-black underline' : 'link' %>">View all<span class="sr-only"> <%= row.title %></span> &rarr;</a>
+    </div>
+    <ul class="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <% row.items.forEach((p) => { %><li><%- include('../partials/product-card', { p }) %></li><% }) %>
+    </ul>
+  </div>
+</section>
+<% }) %>
+
+<%# ---------- Visit our store ---------- %>
+<section class="container-site py-10" aria-labelledby="visit-title">
+  <div class="grid overflow-hidden rounded-2xl border-4 border-brand-black lg:grid-cols-2">
+    <div class="bg-white p-6 sm:p-8">
+      <h2 id="visit-title" class="section-title">Visit our store</h2>
+      <p class="mb-5 mt-3 text-neutral-800">Come and see us at 77 Davis Drive in Newmarket. Browse the full range, ask for a product you cannot find, or collect your online order.</p>
+      <%- include('../partials/store-info') %>
+      <a href="/contact" class="btn-dark mt-6">Contact us</a>
+    </div>
+    <div class="min-h-[320px] border-t-4 border-brand-black bg-neutral-200 lg:border-l-4 lg:border-t-0">
+      <iframe title="Map showing <%= settings.store_name %> at <%= settings.store_address_line1 %>, <%= settings.store_city %>" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="h-full min-h-[320px] w-full border-0"
+        src="https://www.google.com/maps?q=<%= encodeURIComponent(`${settings.store_address_line1}, ${settings.store_city}, ${settings.store_province}, Canada`) %>&output=embed"></iframe>
+    </div>
+  </div>
+</section>
+
+<%# ---------- Newsletter ---------- %>
+<section id="newsletter" class="on-dark bg-brand-red py-10 text-white" aria-labelledby="newsletter-title">
+  <div class="container-site flex flex-col items-start gap-5 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <h2 id="newsletter-title" class="section-title">Never miss a deal</h2>
+      <p class="mt-2 font-semibold">Join our list for weekly specials, new arrivals and restock alerts.</p>
+    </div>
+    <div class="w-full max-w-md"><%- include('../partials/newsletter', { source: 'home', button: 'btn-yellow' }) %></div>
+  </div>
+</section>

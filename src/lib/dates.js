@@ -66,4 +66,14 @@ function storeTime(value = new Date()) {
     .format(value);
 }
 
-module.exports = { TZ, DAY_NAMES, formatDate, formatDateTime, storeDate, storeTime, addDays, dayOfWeek, formatYmd, formatTime };
+/** Convert a store-local (Toronto) date and time to a UTC Date. */
+function zonedToUtc(ymd, hms = '00:00:00') {
+  const guess = new Date(`${ymd}T${hms}Z`);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(guess).reduce((acc, p) => ({ ...acc, [p.type]: p.value }), {});
+  const asLocal = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  return new Date(guess.getTime() - (asLocal - guess.getTime()));
+}
+
+module.exports = { TZ, zonedToUtc, DAY_NAMES, formatDate, formatDateTime, storeDate, storeTime, addDays, dayOfWeek, formatYmd, formatTime };

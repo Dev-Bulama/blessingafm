@@ -1,0 +1,22 @@
+<%- include('../partials/account-shell-top') %>
+<h1 class="h-display text-4xl">Profile &amp; password</h1>
+<div class="mt-5 grid gap-6 xl:grid-cols-2">
+  <form action="/account/profile" method="post" class="panel space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <h2 class="font-bold uppercase tracking-wide">Your details</h2>
+    <%- include('../partials/field', { name: 'first_name', label: 'First name', value: currentUser.first_name, required: true, autocomplete: 'given-name' }) %>
+    <%- include('../partials/field', { name: 'last_name', label: 'Last name', value: currentUser.last_name, required: true, autocomplete: 'family-name' }) %>
+    <%- include('../partials/field', { name: 'phone', label: 'Phone', type: 'tel', value: currentUser.phone, autocomplete: 'tel' }) %>
+    <p class="text-sm text-neutral-700">Email: <strong><%= currentUser.email %></strong> <%= currentUser.email_verified_at ? '(confirmed)' : '(not confirmed yet)' %>. To change your email address, please contact the store.</p>
+    <button type="submit" class="btn-primary">Save details</button>
+  </form>
+  <form action="/account/password" method="post" class="panel space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <h2 class="font-bold uppercase tracking-wide">Change password</h2>
+    <%- include('../partials/field', { name: 'current_password', label: 'Current password', type: 'password', required: true, autocomplete: 'current-password' }) %>
+    <%- include('../partials/field', { name: 'password', label: 'New password', type: 'password', required: true, autocomplete: 'new-password', help: 'At least 10 characters.', attrs: 'minlength="10"' }) %>
+    <%- include('../partials/field', { name: 'password_confirm', label: 'Confirm new password', type: 'password', required: true, autocomplete: 'new-password' }) %>
+    <button type="submit" class="btn-dark">Change password</button>
+  </form>
+</div>
+<%- include('../partials/account-shell-bottom') %>

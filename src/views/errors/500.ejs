@@ -1,0 +1,14 @@
+<% if (typeof bare !== 'undefined' && bare) { %><!DOCTYPE html>
+<html lang="en-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title><%= title %></title><link rel="stylesheet" href="/assets/css/app.css"></head>
+<body><% } %>
+<div class="container-site max-w-2xl py-16 text-center">
+  <p class="h-display inline-block rounded bg-brand-red px-4 py-1 text-7xl text-white"><%= status %></p>
+  <h1 class="h-display mt-4 text-4xl"><%= title %></h1>
+  <p class="mt-3 text-lg text-neutral-800"><%= message %></p>
+  <div class="mt-6 flex flex-wrap justify-center gap-3">
+    <a href="/" class="btn-primary">Back to home</a>
+    <a href="/contact" class="btn-outline">Contact us</a>
+  </div>
+  <% if (stack) { %><pre class="mt-8 overflow-x-auto rounded bg-neutral-100 p-4 text-left text-xs"><%= stack %></pre><% } %>
+</div>
+<% if (typeof bare !== 'undefined' && bare) { %></body></html><% } %>

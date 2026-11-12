@@ -1,0 +1,8 @@
+<form action="/newsletter/subscribe" method="post" class="flex w-full max-w-md flex-col gap-2 sm:flex-row" data-newsletter>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="source" value="<%= typeof source !== 'undefined' ? source : 'footer' %>">
+  <label class="sr-only" for="nl-<%= typeof source !== 'undefined' ? source : 'footer' %>">Email address</label>
+  <input id="nl-<%= typeof source !== 'undefined' ? source : 'footer' %>" type="email" name="email" required autocomplete="email" placeholder="Your email address" class="input flex-1">
+  <button type="submit" class="<%= typeof button !== 'undefined' ? button : 'btn-yellow' %>">Subscribe</button>
+</form>
+<p class="mt-2 text-sm font-semibold" data-newsletter-status role="status"></p>

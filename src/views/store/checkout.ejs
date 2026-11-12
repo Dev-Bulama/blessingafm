@@ -1,0 +1,156 @@
+<% const o = old; const u = currentUser; const da = defaultAddress;
+   const val = (name, fallback) => (o[name] !== undefined ? o[name] : (fallback || ''));
+   const payDefault = o.payment_method || (options.payment.stripe ? 'stripe' : options.payment.etransfer ? 'etransfer' : 'in_store'); %>
+<div class="container-site py-6">
+  <h1 class="h-display text-4xl sm:text-5xl">Checkout</h1>
+  <% if (!u) { %><p class="mt-2 text-sm">Have an account? <a href="/account/login?next=/checkout" class="link">Sign in</a> for faster checkout and order tracking, or continue as a guest.</p><% } %>
+
+  <form action="/checkout" method="post" class="mt-6 grid gap-8 lg:grid-cols-[1fr_400px]" data-checkout novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="space-y-6">
+
+      <%# ---------- 1. Contact ---------- %>
+      <fieldset class="panel">
+        <legend class="h-display px-2 text-2xl">1. Contact</legend>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <%- include('../partials/field', { name: 'first_name', label: 'First name', value: u && u.first_name, required: true, autocomplete: 'given-name' }) %>
+          <%- include('../partials/field', { name: 'last_name', label: 'Last name', value: u && u.last_name, required: true, autocomplete: 'family-name' }) %>
+          <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: u && u.email, required: true, autocomplete: 'email', help: 'Your order confirmation is sent here.' }) %>
+          <%- include('../partials/field', { name: 'phone', label: 'Phone', type: 'tel', value: (u && u.phone) || (da && da.phone), required: true, autocomplete: 'tel', help: 'So we can reach you about pickup or delivery.' }) %>
+        </div>
+      </fieldset>
+
+      <%# ---------- 2. Fulfilment ---------- %>
+      <fieldset class="panel">
+        <legend class="h-display px-2 text-2xl">2. How would you like your order?</legend>
+        <% if (errors.fulfilment) { %><p class="field-error mb-2"><%= errors.fulfilment %></p><% } %>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <% const methods = [
+            ['pickup', 'In-store pickup', `Free · ${settings.store_address_line1}`, 'bag', []],
+            ['delivery', 'Local delivery', 'Newmarket & York Region', 'truck', deliveryBlockers],
+            ['shipping', 'Canada-wide shipping', 'Flat rate by weight', 'box', shippingBlockers],
+          ].filter(([m]) => options.fulfilment[m]); %>
+          <% methods.forEach(([m, label, sub, icon, blockers]) => { %>
+            <label class="relative block">
+              <input type="radio" name="fulfilment" value="<%= m %>" class="peer sr-only" <%= fulfilment === m ? 'checked' : '' %> data-fulfilment <%= blockers.length ? 'data-blocked' : '' %>>
+              <span class="flex h-full min-h-[84px] cursor-pointer flex-col justify-center rounded-xl border-2 border-neutral-400 p-3 peer-checked:border-brand-black peer-checked:bg-brand-yellow peer-focus-visible:ring-4 peer-focus-visible:ring-brand-yellow">
+                <span class="flex items-center gap-2 font-bold"><%- include('../partials/icons', { icon, cls: 'h-5 w-5' }) %><%= label %></span>
+                <span class="text-sm"><%= sub %></span>
+                <% if (blockers.length) { %><span class="mt-1 text-xs font-bold text-brand-red-dark">Not available for <%= blockers.length %> item<%= blockers.length === 1 ? '' : 's' %> in your cart</span><% } %>
+              </span>
+            </label>
+          <% }) %>
+        </div>
+
+        <%# Blockers: tell the customer exactly which items are the cause %>
+        <div class="alert-error mt-4" data-blockers role="alert" <%= quote.blockers.length ? '' : 'hidden' %>>
+          <p data-blockers-title><%= quote.errors[0] || '' %></p>
+          <ul class="mt-2 list-disc pl-5 font-normal" data-blockers-list>
+            <% quote.blockers.forEach((b) => { %><li><strong><%= b.name %></strong> - <%= b.reasons.join(', ') %></li><% }) %>
+          </ul>
+          <p class="mt-2 font-normal"><a href="/cart" class="font-bold underline">Edit your cart</a> to remove these items, or choose another option above.</p>
+        </div>
+
+        <%# Pickup slot %>
+        <div class="mt-5" data-section="pickup" <%= fulfilment === 'pickup' ? '' : 'hidden' %>>
+          <% if (!pickupDays.length) { %>
+            <p class="alert-error">There are no pickup times available right now. Please choose delivery or contact the store.</p>
+          <% } else { %>
+            <label for="f-pickup_slot" class="label">Pickup day and time <span class="text-brand-red-dark" aria-hidden="true">*</span></label>
+            <select id="f-pickup_slot" name="pickup_slot" class="input <%= errors.pickup_slot ? 'input-error' : '' %>">
+              <option value="">Choose a pickup time&hellip;</option>
+              <% pickupDays.forEach((d) => { %>
+                <optgroup label="<%= d.label %>">
+                  <% d.slots.forEach((s) => { const v = `${d.date}|${s.id}`; %><option value="<%= v %>" <%= o.pickup_slot === v ? 'selected' : '' %>><%= d.label %>, <%= s.label %><%= s.left <= 2 ? ` (${s.left} left)` : '' %></option><% }) %>
+                </optgroup>
+              <% }) %>
+            </select>
+            <% if (errors.pickup_slot) { %><p class="field-error"><%= errors.pickup_slot %></p><% } %>
+            <p class="help">Collect from <%= settings.store_address_line1 %>, <%= settings.store_city %>. We will email you when your order is ready.</p>
+          <% } %>
+        </div>
+
+        <%# Address (delivery and shipping) %>
+        <div class="mt-5 space-y-4" data-section="address" <%= fulfilment && fulfilment !== 'pickup' ? '' : 'hidden' %>>
+          <% if (addresses.length > 1) { %>
+            <div>
+              <label for="saved-address" class="label">Use a saved address</label>
+              <select id="saved-address" class="input" data-saved-address>
+                <% addresses.forEach((a) => { %><option value="<%= a.id %>" data-name="<%= a.full_name %>" data-line1="<%= a.line1 %>" data-line2="<%= a.line2 || '' %>" data-city="<%= a.city %>" data-province="<%= a.province %>" data-postal="<%= a.postal_code %>"><%= a.label ? `${a.label}: ` : '' %><%= a.line1 %>, <%= a.city %></option><% }) %>
+              </select>
+            </div>
+          <% } %>
+          <%- include('../partials/field', { name: 'ship_name', label: 'Recipient name (if different)', value: da && da.full_name, autocomplete: 'name' }) %>
+          <%- include('../partials/field', { name: 'line1', label: 'Street address', value: da && da.line1, required: true, autocomplete: 'address-line1' }) %>
+          <%- include('../partials/field', { name: 'line2', label: 'Apartment, unit or buzzer (optional)', value: da && da.line2, autocomplete: 'address-line2' }) %>
+          <div class="grid gap-4 sm:grid-cols-3">
+            <%- include('../partials/field', { name: 'city', label: 'City', value: da && da.city, required: true, autocomplete: 'address-level2' }) %>
+            <%- include('../partials/field', { name: 'province', label: 'Province', type: 'select', value: (da && da.province) || 'ON', required: true, options: Object.entries(PROVINCES), attrs: 'autocomplete="address-level1"' }) %>
+            <%- include('../partials/field', { name: 'postal_code', label: 'Postal code', value: da && da.postal_code, required: true, autocomplete: 'postal-code', attrs: 'data-postal maxlength="7" placeholder="L3Y 1A1"' }) %>
+          </div>
+          <% if (u) { %><label class="flex items-center gap-2 text-sm"><input type="checkbox" name="save_address" value="1" class="checkbox" <%= o.save_address ? 'checked' : '' %>>Save this address to my account</label><% } %>
+        </div>
+
+        <p class="alert-error mt-4" data-quote-error role="alert" <%= !quote.ok && !quote.blockers.length ? '' : 'hidden' %>><%= !quote.blockers.length ? (quote.errors[0] || '') : '' %></p>
+        <p class="alert-success mt-4" data-free-delivery <%= quote.free_delivery ? '' : 'hidden' %>>You qualify for free local delivery.</p>
+      </fieldset>
+
+      <%# ---------- 3. Payment ---------- %>
+      <fieldset class="panel">
+        <legend class="h-display px-2 text-2xl">3. Payment</legend>
+        <% if (errors.payment_method) { %><p class="field-error mb-2"><%= errors.payment_method %></p><% } %>
+        <div class="space-y-3">
+          <% if (options.payment.stripe) { %>
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-neutral-400 p-3 has-[:checked]:border-brand-black has-[:checked]:bg-brand-yellow-soft">
+              <input type="radio" name="payment_method" value="stripe" class="mt-1 h-5 w-5 accent-[#D81E1E]" <%= payDefault === 'stripe' ? 'checked' : '' %> data-payment>
+              <span><span class="block font-bold">Card, Apple Pay or Google Pay</span><span class="text-sm text-neutral-800">You will be taken to Stripe's secure payment page to complete your order.</span></span>
+            </label>
+          <% } %>
+          <% if (options.payment.etransfer) { %>
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-neutral-400 p-3 has-[:checked]:border-brand-black has-[:checked]:bg-brand-yellow-soft">
+              <input type="radio" name="payment_method" value="etransfer" class="mt-1 h-5 w-5 accent-[#D81E1E]" <%= payDefault === 'etransfer' ? 'checked' : '' %> data-payment>
+              <span><span class="block font-bold">Interac e-Transfer</span><span class="text-sm text-neutral-800">Place your order, then send the total to <strong><%= settings.etransfer_email %></strong>. We prepare your order once the transfer is received.</span></span>
+            </label>
+          <% } %>
+          <% if (options.payment.in_store) { %>
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-neutral-400 p-3 has-[:checked]:border-brand-black has-[:checked]:bg-brand-yellow-soft" data-instore-option <%= fulfilment === 'pickup' ? '' : 'hidden' %>>
+              <input type="radio" name="payment_method" value="in_store" class="mt-1 h-5 w-5 accent-[#D81E1E]" <%= payDefault === 'in_store' ? 'checked' : '' %> data-payment>
+              <span><span class="block font-bold">Pay in store</span><span class="text-sm text-neutral-800">Pay by cash, debit or credit when you collect your order. Pickup orders only.</span></span>
+            </label>
+          <% } %>
+          <% if (!options.payment.stripe && !options.payment.etransfer && !options.payment.in_store) { %><p class="alert-error">Online ordering is temporarily unavailable. Please call the store.</p><% } %>
+        </div>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend class="h-display px-2 text-2xl">4. Notes</legend>
+        <%- include('../partials/field', { name: 'note', label: 'Order notes (optional)', type: 'textarea', rows: 3, attrs: 'maxlength="500"', help: 'Delivery instructions, substitutions, or anything else we should know.' }) %>
+      </fieldset>
+    </div>
+
+    <%# ---------- 5. Review ---------- %>
+    <aside class="h-fit rounded-xl border-4 border-brand-black bg-brand-cream p-5 lg:sticky lg:top-40" aria-labelledby="review-title">
+      <h2 id="review-title" class="h-display text-2xl">5. Review your order</h2>
+      <ul class="mt-4 divide-y divide-neutral-300 text-sm">
+        <% cart.items.forEach((item) => { %>
+          <li class="flex gap-3 py-2">
+            <img src="<%= upload(item.thumb) %>" alt="" width="48" height="48" loading="lazy" class="h-12 w-12 shrink-0 rounded border border-neutral-400 object-cover">
+            <span class="min-w-0 flex-1"><span class="block font-semibold"><%= item.name %></span><span class="text-neutral-700"><%= item.variant_name ? `${item.variant_name} · ` : '' %>Qty <%= item.qty %><%= item.is_taxable ? '' : ' · no HST' %></span></span>
+            <span class="shrink-0 font-semibold"><%= money(item.line_cents) %></span>
+          </li>
+        <% }) %>
+      </ul>
+      <p class="mt-2 text-right text-sm"><a href="/cart" class="link">Edit cart</a></p>
+      <div class="mt-4 border-t border-neutral-300 pt-4"><%- include('../partials/totals', { quote, showShipping: true }) %></div>
+
+      <label class="mt-5 flex items-start gap-2 text-sm">
+        <input type="checkbox" name="agree" value="1" class="checkbox mt-0.5" required <%= o.agree ? 'checked' : '' %>>
+        <span>I agree to the <a href="/terms" target="_blank" class="link">terms &amp; conditions</a> and <a href="/returns-refunds" target="_blank" class="link">returns policy</a>.</span>
+      </label>
+      <% if (errors.agree) { %><p class="field-error"><%= errors.agree %></p><% } %>
+
+      <button type="submit" class="btn-primary btn-block mt-4 text-base shadow-hard-sm" data-place-order <%= quote.ok ? '' : 'disabled' %>><span data-place-label>Place order</span></button>
+      <p class="mt-3 text-center text-xs text-neutral-700">Prices in CAD. <%= settings.tax_label || 'HST' %> applies to taxable items only.</p>
+    </aside>
+  </form>
+</div>

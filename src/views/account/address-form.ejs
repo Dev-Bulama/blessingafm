@@ -1,0 +1,21 @@
+<%- include('../partials/account-shell-top') %>
+<% const a = address || {}; %>
+<h1 class="h-display text-4xl"><%= address ? 'Edit address' : 'Add address' %></h1>
+<form action="<%= address ? `/account/addresses/${address.id}` : '/account/addresses' %>" method="post" class="panel mt-5 max-w-2xl space-y-4">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../partials/field', { name: 'label', label: 'Label (optional)', value: a.label, help: 'For example Home or Work.' }) %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <%- include('../partials/field', { name: 'full_name', label: 'Full name', value: a.full_name || `${currentUser.first_name} ${currentUser.last_name}`, required: true, autocomplete: 'name' }) %>
+    <%- include('../partials/field', { name: 'phone', label: 'Phone (optional)', type: 'tel', value: a.phone || currentUser.phone, autocomplete: 'tel' }) %>
+  </div>
+  <%- include('../partials/field', { name: 'line1', label: 'Street address', value: a.line1, required: true, autocomplete: 'address-line1' }) %>
+  <%- include('../partials/field', { name: 'line2', label: 'Apartment, unit or buzzer (optional)', value: a.line2, autocomplete: 'address-line2' }) %>
+  <div class="grid gap-4 sm:grid-cols-3">
+    <%- include('../partials/field', { name: 'city', label: 'City', value: a.city, required: true, autocomplete: 'address-level2' }) %>
+    <%- include('../partials/field', { name: 'province', label: 'Province', type: 'select', value: a.province || 'ON', required: true, options: Object.entries(PROVINCES) }) %>
+    <%- include('../partials/field', { name: 'postal_code', label: 'Postal code', value: a.postal_code, required: true, autocomplete: 'postal-code', attrs: 'maxlength="7"' }) %>
+  </div>
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_default" value="1" class="checkbox" <%= (old.is_default !== undefined ? old.is_default : a.is_default) ? 'checked' : '' %>>Make this my default address</label>
+  <div class="flex gap-3"><button type="submit" class="btn-primary">Save address</button><a href="/account/addresses" class="btn-outline">Cancel</a></div>
+</form>
+<%- include('../partials/account-shell-bottom') %>

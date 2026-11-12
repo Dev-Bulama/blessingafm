@@ -1,0 +1,184 @@
+<% const p = product; const off = percentOff(p.price_cents, p.compare_at_cents); const hasVariants = p.has_variants && p.variants.length > 0;
+   const firstAvailable = hasVariants ? (p.variants.find((v) => v.stock_qty > 0) || p.variants[0]) : null;
+   const cur = firstAvailable || p; const curStock = Math.max(0, cur.stock_qty); %>
+<div class="container-site py-6">
+  <%- include('../partials/breadcrumbs', { breadcrumbs }) %>
+
+  <div class="mt-4 grid gap-8 lg:grid-cols-2">
+    <%# ---------- Gallery ---------- %>
+    <section aria-label="Product images" data-gallery>
+      <div class="zoom-frame" data-zoom>
+        <img src="<%= upload(p.image) %>" alt="<%= (p.images[0] && p.images[0].alt) || p.name %>" width="800" height="800" fetchpriority="high" class="aspect-square w-full object-contain" data-gallery-main>
+      </div>
+      <p class="mt-1 hidden text-xs text-neutral-600 lg:block">Hover to zoom. Click to open the full image.</p>
+      <% if (p.images.length > 1) { %>
+        <ul class="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="More images">
+          <% p.images.forEach((img, i) => { %>
+            <li><button type="button" class="block overflow-hidden rounded-lg border-2 <%= i === 0 ? 'border-brand-red' : 'border-neutral-300' %>" data-gallery-thumb data-full="<%= upload(img.path) %>" data-alt="<%= img.alt || p.name %>" aria-label="Show image <%= i + 1 %> of <%= p.images.length %>" aria-pressed="<%= i === 0 %>">
+              <img src="<%= upload(img.thumb_path) %>" alt="" width="80" height="80" loading="lazy" class="h-20 w-20 object-cover">
+            </button></li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+
+    <%# ---------- Buy box ---------- %>
+    <section aria-labelledby="product-title">
+      <% if (p.brand_name) { %><p class="text-sm font-bold uppercase tracking-widest text-neutral-700"><%= p.brand_name %></p><% } %>
+      <h1 id="product-title" class="h-display mt-1 text-4xl sm:text-5xl"><%= p.name %></h1>
+      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        <% if (p.rating_count > 0) { %><a href="#reviews" class="flex items-center no-underline"><%- include('../partials/stars', { rating: p.rating_avg, count: null }) %><span class="ml-1 underline"><%= p.rating_count %> review<%= p.rating_count === 1 ? '' : 's' %></span></a><% } %>
+        <span class="text-neutral-700">SKU: <span data-sku><%= cur.sku %></span></span>
+      </div>
+
+      <p class="mt-4 flex flex-wrap items-baseline gap-3">
+        <span class="rounded bg-brand-yellow px-3 py-1 font-display text-4xl tracking-wide text-brand-black" data-price><%= money(cur.price_cents) %></span>
+        <s class="text-lg text-neutral-600 <%= cur.compare_at_cents && cur.compare_at_cents > cur.price_cents ? '' : 'hidden' %>" data-compare><span class="sr-only">Was </span><span data-compare-value><%= money(cur.compare_at_cents || 0) %></span></s>
+        <span class="badge-sale <%= percentOff(cur.price_cents, cur.compare_at_cents) > 0 ? '' : 'hidden' %>" data-save>Save <span data-save-value><%= percentOff(cur.price_cents, cur.compare_at_cents) %></span>%</span>
+      </p>
+      <p class="mt-1 text-sm text-neutral-700"><%= p.is_taxable ? `Plus ${settings.tax_label || 'HST'} (${settings.tax_rate}%) at checkout.` : `No ${settings.tax_label || 'HST'} on this item (zero-rated grocery).` %></p>
+
+      <% if (p.short_description) { %><p class="mt-4 text-lg"><%= p.short_description %></p><% } %>
+
+      <ul class="mt-4 flex flex-wrap gap-2">
+        <% if (p.is_frozen) { %><li class="badge-blue">Frozen</li><% } %>
+        <% if (p.is_perishable) { %><li class="badge-yellow">Fresh / perishable</li><% } %>
+        <% if (p.pickup_only) { %><li class="badge-dark">In-store pickup only</li><% } %>
+      </ul>
+      <% if (p.is_frozen || p.is_perishable || p.pickup_only) { %>
+        <p class="alert-info mt-3"><%= p.pickup_only ? 'This item is available for in-store pickup only.' : 'This item is available for in-store pickup and local delivery. It cannot be shipped.' %></p>
+      <% } %>
+
+      <form action="/cart/add" method="post" class="mt-6 space-y-5" data-add-to-cart data-product-form>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="product_id" value="<%= p.id %>">
+
+        <% if (hasVariants) { %>
+          <fieldset>
+            <legend class="label uppercase tracking-wide"><%= p.variant_label || 'Option' %></legend>
+            <div class="flex flex-wrap gap-2">
+              <% p.variants.forEach((v) => { const out = v.stock_qty <= 0; %>
+                <label class="relative">
+                  <input type="radio" name="variant_id" value="<%= v.id %>" class="peer sr-only" <%= firstAvailable.id === v.id ? 'checked' : '' %> required
+                    data-variant data-price="<%= money(v.price_cents) %>" data-compare="<%= v.compare_at_cents && v.compare_at_cents > v.price_cents ? money(v.compare_at_cents) : '' %>"
+                    data-save="<%= percentOff(v.price_cents, v.compare_at_cents) %>" data-stock="<%= Math.max(0, v.stock_qty) %>" data-sku="<%= v.sku %>">
+                  <span class="flex min-h-[44px] cursor-pointer items-center rounded-lg border-2 border-neutral-400 px-4 text-sm font-bold peer-checked:border-brand-black peer-checked:bg-brand-black peer-checked:text-white peer-focus-visible:ring-4 peer-focus-visible:ring-brand-yellow <%= out ? 'text-neutral-500 line-through' : '' %>">
+                    <%= v.name %><% if (out) { %><span class="sr-only"> (sold out)</span><% } %>
+                  </span>
+                </label>
+              <% }) %>
+            </div>
+          </fieldset>
+        <% } %>
+
+        <p class="text-sm font-bold" data-stock-status role="status">
+          <% if (curStock <= 0) { %><span class="text-brand-red-dark">Sold out</span>
+          <% } else if (curStock <= p.low_stock_threshold) { %><span class="text-brand-red-dark">Only <%= curStock %> left in stock</span>
+          <% } else { %><span class="text-brand-green-dark">In stock</span><% } %>
+        </p>
+
+        <div class="flex flex-wrap items-end gap-3">
+          <div>
+            <label for="qty" class="label uppercase tracking-wide">Quantity</label>
+            <div class="flex items-center rounded-lg border-2 border-brand-black" data-stepper>
+              <button type="button" class="h-11 w-11 text-xl font-bold" data-step="-1" aria-label="Decrease quantity">&minus;</button>
+              <input id="qty" type="number" name="qty" value="1" min="1" max="<%= Math.max(1, Math.min(99, curStock)) %>" inputmode="numeric" class="h-11 w-14 border-x-2 border-brand-black text-center font-bold" data-qty>
+              <button type="button" class="h-11 w-11 text-xl font-bold" data-step="1" aria-label="Increase quantity">+</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary flex-1 text-base shadow-hard-sm" data-add-button <%= curStock <= 0 ? 'disabled' : '' %>><%= curStock <= 0 ? 'Sold out' : 'Add to cart' %></button>
+        </div>
+      </form>
+
+      <form action="/wishlist/toggle/<%= p.id %>" method="post" class="mt-3" data-wishlist>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn-outline btn-sm" aria-pressed="<%= inWishlist %>"><%- include('../partials/icons', { icon: 'heart', cls: 'h-4 w-4' }) %><span data-wishlist-label><%= inWishlist ? 'Saved to wishlist' : 'Add to wishlist' %></span></button>
+      </form>
+
+      <ul class="mt-6 space-y-2 border-t border-neutral-300 pt-4 text-sm">
+        <li class="flex items-center gap-2"><%- include('../partials/icons', { icon: 'bag', cls: 'h-5 w-5 text-brand-red' }) %>Free pickup at <%= settings.store_address_line1 %>, <%= settings.store_city %></li>
+        <% if (!p.pickup_only) { %><li class="flex items-center gap-2"><%- include('../partials/icons', { icon: 'truck', cls: 'h-5 w-5 text-brand-red' }) %>Local delivery in Newmarket &amp; York Region</li><% } %>
+        <% if (!p.pickup_only && !p.is_frozen && !p.is_perishable) { %><li class="flex items-center gap-2"><%- include('../partials/icons', { icon: 'box', cls: 'h-5 w-5 text-brand-red' }) %>Ships Canada-wide</li><% } %>
+      </ul>
+    </section>
+  </div>
+
+  <%# ---------- Tabs: description / details / reviews ---------- %>
+  <section class="mt-10" data-tabs>
+    <div role="tablist" aria-label="Product information" class="flex flex-wrap gap-1 border-b-4 border-brand-black">
+      <button type="button" role="tab" id="tab-desc" aria-controls="panel-desc" aria-selected="true" class="rounded-t-lg border-2 border-b-0 border-brand-black bg-brand-black px-4 py-2 text-sm font-bold uppercase tracking-wide text-white" data-tab>Description</button>
+      <button type="button" role="tab" id="tab-details" aria-controls="panel-details" aria-selected="false" tabindex="-1" class="rounded-t-lg border-2 border-b-0 border-brand-black bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide" data-tab>Ingredients &amp; details</button>
+      <button type="button" role="tab" id="tab-reviews" aria-controls="reviews" aria-selected="false" tabindex="-1" class="rounded-t-lg border-2 border-b-0 border-brand-black bg-white px-4 py-2 text-sm font-bold uppercase tracking-wide" data-tab>Reviews (<%= p.rating_count %>)</button>
+    </div>
+    <div id="panel-desc" role="tabpanel" aria-labelledby="tab-desc" class="prose-store py-6" tabindex="0">
+      <%- p.description || `<p>${p.short_description || 'No description yet.'}</p>` %>
+      <% if (p.tags.length) { %><p class="text-sm text-neutral-700">Tags: <% p.tags.forEach((t, i) => { %><a href="/search?q=<%= encodeURIComponent(t) %>"><%= t %></a><%= i < p.tags.length - 1 ? ', ' : '' %><% }) %></p><% } %>
+    </div>
+    <div id="panel-details" role="tabpanel" aria-labelledby="tab-details" class="prose-store py-6" tabindex="0" hidden>
+      <%- p.details || '<p>No additional details.</p>' %>
+      <table>
+        <tbody>
+          <tr><th scope="row">SKU</th><td><%= p.sku %></td></tr>
+          <% if (p.brand_name) { %><tr><th scope="row">Brand</th><td><%= p.brand_name %></td></tr><% } %>
+          <% if (cur.weight_grams) { %><tr><th scope="row">Shipping weight</th><td><%= cur.weight_grams >= 1000 ? `${(cur.weight_grams / 1000).toFixed(2).replace(/\.?0+$/, '')} kg` : `${cur.weight_grams} g` %></td></tr><% } %>
+          <tr><th scope="row">Tax</th><td><%= p.is_taxable ? `${settings.tax_label || 'HST'} ${settings.tax_rate}% applies` : 'Zero-rated (no HST)' %></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="reviews" role="tabpanel" aria-labelledby="tab-reviews" class="py-6" tabindex="0" hidden>
+      <% if (!reviews.length) { %><p class="text-neutral-700">There are no reviews for this product yet.</p><% } %>
+      <ul class="space-y-5">
+        <% reviews.forEach((r) => { %>
+          <li class="border-b border-neutral-200 pb-4">
+            <div class="flex flex-wrap items-center gap-x-3"><%- include('../partials/stars', { rating: r.rating, count: null }) %><span class="text-sm font-bold"><%= r.first_name %> <%= (r.last_name || '').charAt(0) %>.</span><span class="badge-green">Verified buyer</span><span class="text-xs text-neutral-600"><%= dates.formatDate(r.created_at) %></span></div>
+            <% if (r.title) { %><p class="mt-1 font-bold"><%= r.title %></p><% } %>
+            <p class="mt-1 whitespace-pre-line text-neutral-900"><%= r.body %></p>
+          </li>
+        <% }) %>
+      </ul>
+
+      <div class="panel mt-6 max-w-2xl">
+        <h2 class="h-display text-2xl">Write a review</h2>
+        <% if (!currentUser) { %>
+          <p class="mt-2 text-neutral-800">Bought this product? <a class="link" href="/account/login?next=<%= encodeURIComponent(`/p/${p.slug}`) %>">Sign in</a> to leave a review. Only customers who have purchased an item can review it.</p>
+        <% } else if (myReview) { %>
+          <p class="mt-2 text-neutral-800">Thank you for reviewing this product<%= myReview.status === 'pending' ? ' - your review is waiting for approval.' : myReview.status === 'rejected' ? '. Your review was not published.' : '.' %></p>
+        <% } else if (!canReview) { %>
+          <p class="mt-2 text-neutral-800">Only customers who have bought this product can review it. Once your order is paid you will be able to write a review here.</p>
+        <% } else { %>
+          <form action="/p/<%= p.slug %>/reviews" method="post" class="mt-3 space-y-4">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <fieldset>
+              <legend class="label">Your rating <span class="text-brand-red-dark" aria-hidden="true">*</span></legend>
+              <div class="flex flex-wrap gap-2">
+                <% [5, 4, 3, 2, 1].forEach((n) => { %>
+                  <label><input type="radio" name="rating" value="<%= n %>" class="peer sr-only" required <%= String(old.rating) === String(n) ? 'checked' : '' %>>
+                    <span class="flex min-h-[44px] cursor-pointer items-center rounded-lg border-2 border-neutral-400 px-3 text-sm font-bold peer-checked:border-brand-black peer-checked:bg-brand-yellow peer-focus-visible:ring-4 peer-focus-visible:ring-brand-yellow"><%= n %> star<%= n === 1 ? '' : 's' %></span></label>
+                <% }) %>
+              </div>
+              <% if (errors.rating) { %><p class="field-error"><%= errors.rating %></p><% } %>
+            </fieldset>
+            <%- include('../partials/field', { name: 'title', label: 'Headline (optional)', attrs: 'maxlength="120"' }) %>
+            <%- include('../partials/field', { name: 'body', label: 'Your review', type: 'textarea', required: true, attrs: 'maxlength="2000"' }) %>
+            <button type="submit" class="btn-primary">Submit review</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <% if (related.length) { %>
+    <section class="mt-10" aria-labelledby="related-title">
+      <h2 id="related-title" class="section-title">You may also like</h2>
+      <ul class="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <% related.forEach((rp) => { %><li><%- include('../partials/product-card', { p: rp }) %></li><% }) %>
+      </ul>
+    </section>
+  <% } %>
+</div>
+
+<%# Full-size image dialog %>
+<dialog class="max-h-[95vh] max-w-[95vw] rounded-xl border-4 border-brand-black p-0 backdrop:bg-black/80" data-lightbox aria-label="Full size product image">
+  <form method="dialog" class="absolute right-2 top-2"><button class="btn-dark btn-sm" aria-label="Close image">Close</button></form>
+  <img src="" alt="" class="max-h-[90vh] w-auto" data-lightbox-img>
+</dialog>

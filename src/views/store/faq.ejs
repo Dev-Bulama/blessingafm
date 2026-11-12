@@ -1,0 +1,12 @@
+<div class="container-site max-w-3xl py-8">
+  <h1 class="h-display text-4xl sm:text-5xl">Frequently asked questions</h1>
+  <div class="mt-6 divide-y-2 divide-neutral-200 border-y-2 border-brand-black">
+    <% faqs.forEach((f) => { %>
+      <details class="group">
+        <summary class="flex min-h-[52px] items-center justify-between gap-4 py-3 text-lg font-bold"><%= f.question %><%- include('../partials/icons', { icon: 'chevron', cls: 'h-5 w-5 shrink-0 transition group-open:rotate-180' }) %></summary>
+        <p class="whitespace-pre-line pb-4 text-neutral-900"><%= f.answer %></p>
+      </details>
+    <% }) %>
+  </div>
+  <p class="mt-6">Still have a question? <a href="/contact" class="link">Contact us</a>.</p>
+</div>

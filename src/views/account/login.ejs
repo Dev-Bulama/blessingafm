@@ -1,0 +1,12 @@
+<div class="container-site max-w-md py-10">
+  <h1 class="h-display text-4xl">Sign in</h1>
+  <form action="/account/login" method="post" class="panel mt-6 space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="next" value="<%= old.next || next %>">
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', required: true, autocomplete: 'email' }) %>
+    <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', required: true, autocomplete: 'current-password' }) %>
+    <button type="submit" class="btn-primary btn-block">Sign in</button>
+    <p class="text-center text-sm"><a href="/account/forgot" class="link">Forgot your password?</a></p>
+  </form>
+  <p class="mt-6 text-center">New here? <a href="/account/register" class="link">Create an account</a></p>
+</div>
