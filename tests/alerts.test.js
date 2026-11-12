@@ -14,6 +14,17 @@ test('low-stock alert fires only when an item crosses its threshold', () => {
   assert.equal(crossedLowStock(4, 9, 5), false); // stock went up
 });
 
+test('placeholder payment keys count as not configured', () => {
+  const { isRealKey } = require('../src/config/stripe');
+  // Key-shaped strings are assembled here so the file never contains anything that looks like a credential.
+  const body = 'A1b2C3d4'.repeat(3);
+  const make = (prefix, mode) => [prefix, mode, body].join('_');
+  for (const bad of ['', 'test', ['sk', 'test', 'xxx'].join('_'), ['sk', 'test', ''].join('_'), make('pk', 'test'), 'whsec_abc']) assert.equal(isRealKey(bad), false, bad);
+  assert.equal(isRealKey(make('sk', 'test')), true);
+  assert.equal(isRealKey(make('sk', 'live')), true);
+  assert.equal(isRealKey(make('rk', 'live')), true);
+});
+
 test('PayPal amounts convert to and from cents exactly', () => {
   assert.equal(paypal.toAmount(4670), '46.70');
   assert.equal(paypal.toAmount(5), '0.05');

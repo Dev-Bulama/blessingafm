@@ -159,7 +159,7 @@ function settings(req, res) {
     title: 'Settings',
     status: {
       smtp: Boolean(env.smtp.host && env.smtp.user), smtpHost: env.smtp.host, smtpUser: env.smtp.user,
-      stripe: Boolean(getStripe()), stripeLive: env.stripe.secretKey.startsWith('sk_live_'), stripeWebhook: Boolean(env.stripe.webhookSecret),
+      stripe: Boolean(getStripe()), stripeLive: env.stripe.secretKey.startsWith('sk_live_'), stripeWebhook: /^whsec_.{10,}/.test(env.stripe.webhookSecret),
       paypal: require('../../services/paypal').isConfigured(), paypalLive: env.paypal.mode === 'live',
       sharp: Image.hasSharp(), cron: Boolean(env.cronToken) && !env.cronToken.startsWith('change-me'), appUrl: env.appUrl,
     },

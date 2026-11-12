@@ -9,7 +9,9 @@ const env = require('../config/env');
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
-const isConfigured = () => Boolean(env.paypal.clientId && env.paypal.clientSecret);
+// Real PayPal credentials are long random strings; placeholders such as "test" count as not configured.
+const looksReal = (v) => /^[A-Za-z0-9_-]{20,}$/.test(String(v || ''));
+const isConfigured = () => (process.env.PAYPAL_API_BASE ? Boolean(env.paypal.clientId && env.paypal.clientSecret) : looksReal(env.paypal.clientId) && looksReal(env.paypal.clientSecret));
 
 class PaypalError extends Error {
   constructor(message, status, body) {
