@@ -1,0 +1,104 @@
+<%
+  const s = settings;
+  const posted = Object.keys(old).length > 0;
+  const v = (k) => (old[k] !== undefined ? old[k] : (s[k] || ''));
+  const on = (k) => (posted ? ['1', 'on'].includes(String(old[k])) : s[k] === '1');
+  const text = (k, label, opts = {}) => `<div><label class="label" for="s-${k}">${label}</label><input id="s-${k}" name="${k}" value="${String(v(k)).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" type="${opts.type || 'text'}" class="input ${errors[k] ? 'input-error' : ''}" ${opts.attrs || ''}>${opts.help ? `<p class="help">${opts.help}</p>` : ''}${errors[k] ? `<p class="field-error">${errors[k]}</p>` : ''}</div>`;
+  const check = (k, label) => `<label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="${k}" value="1" class="checkbox" ${on(k) ? 'checked' : ''}>${label}</label>`;
+  const ok = (flag, yes, no) => `<span class="${flag ? 'badge-green' : 'badge-sale'}">${flag ? yes : no}</span>`;
+%>
+<%- include('../partials/admin-head', { heading: 'Settings' }) %>
+
+<section class="panel mb-5" aria-labelledby="sys-title">
+  <h2 id="sys-title" class="font-bold uppercase tracking-wide">System status</h2>
+  <ul class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+    <li><%- ok(status.smtp, 'Email configured', 'Email not configured') %> <%= status.smtp ? `${status.smtpUser} via ${status.smtpHost}` : 'Set the SMTP_* environment variables.' %></li>
+    <li><%- ok(status.stripe, status.stripeLive ? 'Stripe LIVE' : 'Stripe TEST mode', 'Stripe not configured') %> <%= status.stripe ? '' : 'Set STRIPE_SECRET_KEY.' %></li>
+    <li><%- ok(status.stripeWebhook, 'Webhook secret set', 'Webhook secret missing') %> <%= status.appUrl %>/webhooks/stripe</li>
+    <li><%- ok(status.cron, 'Cron token set', 'Cron token missing') %> <%= status.appUrl %>/cron/cleanup?token=&hellip;</li>
+    <li><%- ok(status.sharp, 'Image conversion on', 'Image conversion off') %> <%= status.sharp ? 'Uploads become WebP with thumbnails.' : 'sharp is not installed; uploads are stored as-is.' %></li>
+  </ul>
+  <p class="mt-3 text-xs text-neutral-700">Passwords and API keys are never stored here. They are set as environment variables in hPanel.</p>
+</section>
+
+<form action="/admin/settings?_csrf=<%= encodeURIComponent(csrfToken) %>" method="post" enctype="multipart/form-data" class="space-y-5">
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Store information</legend>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- text('store_name', 'Store name', { attrs: 'required maxlength="120"' }) %>
+      <%- text('store_tagline', 'Tagline', { attrs: 'maxlength="160"' }) %>
+      <%- text('store_address_line1', 'Street address') %>
+      <%- text('store_city', 'City') %>
+      <%- text('store_province', 'Province code', { attrs: 'maxlength="2"', help: 'Two letters, e.g. ON.' }) %>
+      <%- text('store_postal_code', 'Postal code') %>
+    </div>
+    <div>
+      <label class="label" for="logo">Logo</label>
+      <% if (s.logo_path) { %><div class="mb-2 flex items-center gap-3"><img src="<%= upload(s.logo_path) %>" alt="Current logo" class="h-14 w-auto rounded border border-neutral-300 bg-white p-1"><label class="flex items-center gap-2 text-sm"><input type="checkbox" name="logo_remove" value="1" class="checkbox">Remove and use the built-in logo</label></div><% } %>
+      <input id="logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="input">
+      <p class="help">Replaces the built-in red Africa logo in the header, emails and invoices. A wide PNG with a transparent background, about 440 x 112 px, works best.</p>
+    </div>
+    <div><label class="label" for="s-meta_description">Home page description for search engines</label><textarea id="s-meta_description" name="meta_description" rows="2" maxlength="300" class="input"><%= v('meta_description') %></textarea></div>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Contact details &amp; hours</legend>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- text('store_phone', 'Phone') %>
+      <%- text('store_email', 'Public email', { type: 'email' }) %>
+      <%- text('store_whatsapp', 'WhatsApp number', { help: 'With country code, e.g. +1 905 555 0100. Shows the floating chat button. Leave empty to hide it.' }) %>
+      <%- text('order_notify_email', 'Send new-order emails to', { type: 'email', help: 'Leave empty to use the public email.' }) %>
+    </div>
+    <div><label class="label" for="s-store_hours">Opening hours</label><textarea id="s-store_hours" name="store_hours" rows="3" maxlength="1000" class="input"><%= v('store_hours') %></textarea><p class="help">One line per row, e.g. "Monday to Saturday: 10:00 AM - 8:00 PM".</p></div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <%- text('social_facebook', 'Facebook link', { attrs: 'placeholder="https://"' }) %>
+      <%- text('social_instagram', 'Instagram link', { attrs: 'placeholder="https://"' }) %>
+      <%- text('social_tiktok', 'TikTok link', { attrs: 'placeholder="https://"' }) %>
+    </div>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Announcement bar</legend>
+    <%- check('announcement_enabled', 'Show the announcement bar at the top of every page') %>
+    <%- text('announcement_text', 'Announcement text', { attrs: 'maxlength="200"' }) %>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Tax</legend>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <%- text('tax_rate', 'Tax rate (%)', { attrs: 'inputmode="decimal" required', help: 'Ontario HST is 13.' }) %>
+      <%- text('tax_label', 'Tax label', { attrs: 'required maxlength="20"', help: 'Shown in cart, emails and invoices.' }) %>
+    </div>
+    <%- check('tax_shipping', 'Charge tax on delivery and shipping fees, in proportion to the taxable items in the order') %>
+    <p class="help">Tax is only charged on products marked "Taxable". Basic groceries should be left untaxed (zero-rated).</p>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Fulfilment</legend>
+    <%- check('pickup_enabled', 'Offer in-store pickup') %>
+    <%- check('delivery_enabled', 'Offer local delivery (zones are managed under Delivery zones)') %>
+    <%- check('shipping_enabled', 'Offer Canada-wide shipping (rates are managed under Shipping rates)') %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- text('pickup_days_ahead', 'Pickup days offered', { type: 'number', attrs: 'min="1" max="30"', help: 'How many days ahead customers can book a pickup, including today.' }) %>
+      <%- text('pickup_lead_minutes', 'Pickup preparation time (minutes)', { type: 'number', attrs: 'min="0" max="2880"', help: 'Same-day slots that end sooner than this are hidden.' }) %>
+    </div>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Payment methods</legend>
+    <%- check('payment_stripe_enabled', 'Card, Apple Pay and Google Pay (Stripe Checkout)') %>
+    <%- check('payment_etransfer_enabled', 'Interac e-Transfer (manual confirmation)') %>
+    <%- check('payment_instore_enabled', 'Pay in store (pickup orders only)') %>
+    <%- text('etransfer_email', 'e-Transfer recipient email', { type: 'email', help: 'Customers send their payment to this address.' }) %>
+    <div><label class="label" for="s-etransfer_instructions">e-Transfer instructions</label><textarea id="s-etransfer_instructions" name="etransfer_instructions" rows="3" maxlength="1000" class="input"><%= v('etransfer_instructions') %></textarea></div>
+  </fieldset>
+
+  <button type="submit" class="btn-primary">Save settings</button>
+</form>
+
+<form id="email" action="/admin/settings/test-email" method="post" class="panel mt-8 max-w-xl space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <h2 class="font-bold uppercase tracking-wide">Send a test email</h2>
+  <p class="text-sm text-neutral-800">Checks that the SMTP mailbox details in the environment variables work.</p>
+  <div class="flex gap-2"><label class="sr-only" for="test-to">Send test to</label><input id="test-to" type="email" name="to" value="<%= currentUser.email %>" required class="input"><button type="submit" class="btn-dark">Send test email</button></div>
+</form>

@@ -1,0 +1,23 @@
+<p class="mb-2 text-sm"><a href="/admin/inventory" class="link">&larr; Inventory</a></p>
+<%- include('../partials/admin-head', { heading: product ? `Stock history: ${product.name}` : 'Stock history' }) %>
+<div class="panel overflow-x-auto">
+  <% if (!rows.length) { %><p class="text-sm text-neutral-700">No stock movements yet.</p><% } else { %>
+  <table class="table">
+    <thead><tr><th scope="col">When</th><th scope="col">Product</th><th scope="col" class="text-right">Change</th><th scope="col" class="text-right">After</th><th scope="col">Reason</th><th scope="col">Note</th><th scope="col">By</th></tr></thead>
+    <tbody>
+      <% rows.forEach((l) => { %>
+        <tr>
+          <td class="whitespace-nowrap"><%= dates.formatDateTime(l.created_at) %></td>
+          <td><a href="/admin/inventory/logs?product=<%= l.product_id %>"><%= l.name %></a><%= l.variant_name ? ` (${l.variant_name})` : '' %></td>
+          <td class="text-right font-bold <%= l.change_qty < 0 ? 'text-brand-red-dark' : 'text-brand-green-dark' %>"><%= l.change_qty > 0 ? '+' : '' %><%= l.change_qty %></td>
+          <td class="text-right"><%= l.qty_after %></td>
+          <td><%= l.reason %></td>
+          <td><% if (l.order_id) { %><a href="/admin/orders/<%= l.order_id %>"><%= l.note || 'Order' %></a><% } else { %><%= l.note || '' %><% } %></td>
+          <td><%= l.first_name ? `${l.first_name} ${l.last_name}` : 'system' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/admin-pager', { page, hasMore, hrefFor: (n) => qs(query, { page: n }) }) %>

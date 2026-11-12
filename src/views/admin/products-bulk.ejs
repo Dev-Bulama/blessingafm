@@ -1,0 +1,26 @@
+<p class="mb-2 text-sm"><a href="/admin/products" class="link">&larr; Products</a></p>
+<%- include('../partials/admin-head', { heading: 'Bulk price & stock edit' }) %>
+<form method="get" class="mb-4 flex max-w-md gap-2" role="search"><label for="q" class="sr-only">Search</label><input id="q" type="search" name="q" value="<%= q %>" placeholder="Name or SKU" class="input"><button type="submit" class="btn-dark btn-sm">Search</button></form>
+<form action="/admin/products/bulk" method="post" class="panel">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="return_to" value="/admin/products/bulk<%= qs(query, {}) === '?' ? '' : qs(query, {}) %>">
+  <p class="mb-3 text-sm text-neutral-800">Edit prices and stock directly, then save. Only rows you change are updated, and every stock change is recorded in the stock history.</p>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Price ($)</th><th scope="col">Compare-at ($)</th><th scope="col">Stock</th></tr></thead>
+      <tbody>
+        <% rows.forEach((r) => { const key = r.variant_id ? `v-${r.variant_id}` : `p-${r.product_id}`; const label = `${r.name}${r.variant_name ? ` (${r.variant_name})` : ''}`; %>
+          <tr>
+            <td><a href="/admin/products/<%= r.product_id %>/edit"><%= r.name %></a><% if (r.variant_name) { %> <span class="text-neutral-700">(<%= r.variant_name %>)</span><% } %><% if (!r.is_active) { %> <span class="badge-muted">Hidden</span><% } %></td>
+            <td class="whitespace-nowrap"><%= r.sku %></td>
+            <td><input name="items[<%= key %>][price]" value="<%= centsToInput(r.price_cents) %>" inputmode="decimal" class="input w-24" aria-label="Price of <%= label %>"></td>
+            <td><input name="items[<%= key %>][compare_at]" value="<%= centsToInput(r.compare_at_cents) %>" inputmode="decimal" class="input w-24" aria-label="Compare-at price of <%= label %>"></td>
+            <td><input name="items[<%= key %>][stock]" type="number" min="0" step="1" value="<%= r.stock_qty %>" class="input w-24 <%= r.stock_qty <= r.low_stock_threshold ? 'border-brand-red' : '' %>" aria-label="Stock of <%= label %>"></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="btn-primary mt-4">Save changes</button>
+</form>
+<%- include('../partials/admin-pager', { page, hasMore, hrefFor: (n) => qs(query, { page: n }) }) %>

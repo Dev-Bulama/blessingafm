@@ -57,7 +57,8 @@ function orderUrl(order) {
 
 async function storeAddress() {
   const s = await Setting.getAll();
-  return s.order_notify_email || s.store_email || env.smtp.user;
+  const to = s.order_notify_email || s.store_email || env.smtp.user;
+  return to && !to.startsWith('placeholder@') ? to : (env.smtp.user || null); // never mail the seed placeholder address
 }
 
 async function sendOrderConfirmation(order) {

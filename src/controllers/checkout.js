@@ -28,7 +28,7 @@ const checkoutSchema = z.object({
   save_address: checkbox.optional(),
   agree: checkbox.refine((v) => v === true, 'Please accept the terms to place your order'),
 }).superRefine((d, ctx) => {
-  const issue = (path, message) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+  const issue = (path, message) => ctx.addIssue({ code: 'custom', path: [path], message });
   if (d.fulfilment === 'pickup') {
     if (!/^\d{4}-\d{2}-\d{2}\|\d+$/.test(d.pickup_slot || '')) issue('pickup_slot', 'Choose a pickup day and time');
     return;

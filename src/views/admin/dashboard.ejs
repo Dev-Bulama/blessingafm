@@ -1,0 +1,61 @@
+<%- include('../partials/admin-head', { heading: 'Dashboard', actions: [['/admin/orders?status=paid', 'Orders to prepare', 'btn-primary'], ['/admin/products/new', 'Add product']] }) %>
+
+<section aria-label="Sales" class="grid gap-3 sm:grid-cols-3">
+  <% [['Today', sales.today], ['This week', sales.week], ['This month', sales.month]].forEach(([label, s]) => { %>
+    <div class="stat"><p class="text-xs font-bold uppercase tracking-widest text-neutral-600"><%= label %></p>
+      <p class="font-display text-4xl tracking-wide"><%= money(s.total) %></p>
+      <p class="text-sm text-neutral-700"><%= s.count %> paid order<%= s.count === 1 ? '' : 's' %></p></div>
+  <% }) %>
+</section>
+
+<section aria-labelledby="status-title" class="panel mt-5">
+  <h2 id="status-title" class="font-bold uppercase tracking-wide">Orders by status</h2>
+  <ul class="mt-3 flex flex-wrap gap-2">
+    <% Object.entries(counts).forEach(([status, n]) => { %>
+      <li><a href="/admin/orders?status=<%= status %>" class="inline-flex items-center gap-2 rounded-lg border border-neutral-300 px-3 py-2 text-sm no-underline hover:bg-brand-yellow-soft"><span class="status status-<%= status %>"><%= STATUS_LABELS[status] %></span><strong><%= n %></strong></a></li>
+    <% }) %>
+  </ul>
+  <% if (unreadMessages || pendingReviews) { %>
+    <p class="mt-3 text-sm"><% if (unreadMessages) { %><a href="/admin/messages" class="link"><%= unreadMessages %> unread message<%= unreadMessages === 1 ? '' : 's' %></a><% } %><%= unreadMessages && pendingReviews ? ' · ' : '' %><% if (pendingReviews) { %><a href="/admin/reviews" class="link"><%= pendingReviews %> review<%= pendingReviews === 1 ? '' : 's' %> waiting for approval</a><% } %></p>
+  <% } %>
+</section>
+
+<%# ---------- Sales chart: server-rendered SVG, no chart library ---------- %>
+<% const max = Math.max(1, ...chart.map((c) => c.cents)); const W = 700; const H = 200; const pad = 24; const bw = (W - pad * 2) / chart.length; %>
+<section aria-labelledby="chart-title" class="panel mt-5">
+  <h2 id="chart-title" class="font-bold uppercase tracking-wide">Paid sales, last <%= chart.length %> days</h2>
+  <svg viewBox="0 0 <%= W %> <%= H + 30 %>" class="mt-3 w-full" role="img" aria-label="Bar chart of paid sales per day. Highest day <%= money(max) %>.">
+    <line x1="<%= pad %>" y1="<%= H %>" x2="<%= W - pad %>" y2="<%= H %>" class="chart-axis"/>
+    <% chart.forEach((c, i) => { const h = Math.round((c.cents / max) * (H - 30)); const x = pad + i * bw; %>
+      <g><title><%= c.label %>: <%= money(c.cents) %></title>
+        <rect x="<%= (x + 4).toFixed(1) %>" y="<%= H - h %>" width="<%= (bw - 8).toFixed(1) %>" height="<%= Math.max(h, c.cents ? 2 : 0) %>" rx="3" class="chart-bar"/>
+        <% if (c.cents) { %><text x="<%= (x + bw / 2).toFixed(1) %>" y="<%= H - h - 5 %>" text-anchor="middle" class="chart-label">$<%= Math.round(c.cents / 100) %></text><% } %>
+        <text x="<%= (x + bw / 2).toFixed(1) %>" y="<%= H + 16 %>" text-anchor="middle" class="chart-label"><%= c.label %></text></g>
+    <% }) %>
+  </svg>
+  <details class="mt-2 text-sm"><summary class="font-semibold">Show as a table</summary>
+    <table class="table mt-2"><thead><tr><th scope="col">Day</th><th scope="col" class="text-right">Paid sales</th></tr></thead>
+      <tbody><% chart.forEach((c) => { %><tr><td><%= c.label %></td><td class="text-right"><%= money(c.cents) %></td></tr><% }) %></tbody></table></details>
+</section>
+
+<div class="mt-5 grid gap-5 xl:grid-cols-2">
+  <section aria-labelledby="low-title" class="panel">
+    <div class="flex items-center justify-between"><h2 id="low-title" class="font-bold uppercase tracking-wide">Low stock</h2><a href="/admin/inventory?low=1" class="link text-sm">View all</a></div>
+    <% if (!lowStock.length) { %><p class="mt-3 text-sm text-neutral-700">Nothing is running low.</p><% } else { %>
+      <table class="table mt-3"><thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" class="text-right">Stock</th></tr></thead>
+        <tbody><% lowStock.forEach((p) => { %><tr><td><a href="/admin/products/<%= p.id %>/edit"><%= p.name %><%= p.variant_name ? ` (${p.variant_name})` : '' %></a></td><td><%= p.sku %></td><td class="text-right font-bold <%= p.stock_qty <= 0 ? 'text-brand-red-dark' : '' %>"><%= p.stock_qty %></td></tr><% }) %></tbody></table>
+    <% } %>
+  </section>
+  <section aria-labelledby="top-title" class="panel">
+    <h2 id="top-title" class="font-bold uppercase tracking-wide">Top products, last 30 days</h2>
+    <% if (!topProducts.length) { %><p class="mt-3 text-sm text-neutral-700">No sales yet.</p><% } else { %>
+      <table class="table mt-3"><thead><tr><th scope="col">Product</th><th scope="col" class="text-right">Units</th><th scope="col" class="text-right">Revenue</th></tr></thead>
+        <tbody><% topProducts.forEach((p) => { %><tr><td><%= p.name %></td><td class="text-right"><%= p.qty %></td><td class="text-right"><%= money(p.revenue) %></td></tr><% }) %></tbody></table>
+    <% } %>
+  </section>
+</div>
+
+<section aria-labelledby="recent-title" class="panel mt-5">
+  <div class="flex items-center justify-between"><h2 id="recent-title" class="font-bold uppercase tracking-wide">Recent orders</h2><a href="/admin/orders" class="link text-sm">All orders</a></div>
+  <div class="mt-3 overflow-x-auto"><%- include('../partials/admin-orders-table', { orders: recentOrders }) %></div>
+</section>

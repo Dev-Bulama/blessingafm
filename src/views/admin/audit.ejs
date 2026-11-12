@@ -1,0 +1,22 @@
+<%- include('../partials/admin-head', { heading: 'Audit log' }) %>
+<p class="mb-4 text-sm text-neutral-800">A record of every change made in the admin panel. Entries are kept for one year.</p>
+<div class="panel overflow-x-auto">
+  <% if (!rows.length) { %><p class="text-sm text-neutral-700">No activity recorded yet.</p><% } else { %>
+  <table class="table">
+    <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Item</th><th scope="col">Details</th><th scope="col">IP</th></tr></thead>
+    <tbody>
+      <% rows.forEach((a) => { %>
+        <tr>
+          <td class="whitespace-nowrap"><%= dates.formatDateTime(a.created_at) %></td>
+          <td><%= a.first_name ? `${a.first_name} ${a.last_name}` : 'Deleted user' %></td>
+          <td><%= a.action %></td>
+          <td><%= a.entity || '' %><%= a.entity_id ? ` #${a.entity_id}` : '' %></td>
+          <td class="max-w-md break-words text-xs"><%= a.details || '' %></td>
+          <td class="text-xs"><%= a.ip || '' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/admin-pager', { page, hasMore, hrefFor: (n) => `/admin/audit?page=${n}` }) %>

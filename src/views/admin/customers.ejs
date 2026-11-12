@@ -1,0 +1,22 @@
+<%- include('../partials/admin-head', { heading: `Customers (${total})` }) %>
+<form method="get" class="mb-4 flex max-w-md gap-2" role="search"><label for="q" class="sr-only">Search customers</label><input id="q" type="search" name="q" value="<%= q %>" placeholder="Name, email or phone" class="input"><button type="submit" class="btn-dark btn-sm">Search</button></form>
+<div class="panel overflow-x-auto">
+  <% if (!customers.length) { %><p class="text-sm text-neutral-700">No customers found.</p><% } else { %>
+  <table class="table">
+    <thead><tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Joined</th><th scope="col" class="text-right">Orders</th><th scope="col" class="text-right">Spent</th><th scope="col">Status</th></tr></thead>
+    <tbody>
+      <% customers.forEach((c) => { %>
+        <tr>
+          <td><a href="/admin/customers/<%= c.id %>" class="font-bold"><%= c.first_name %> <%= c.last_name %></a><span class="block text-xs text-neutral-600"><%= c.email %><%= c.email_verified_at ? '' : ' (unconfirmed)' %></span></td>
+          <td><%= c.phone || '-' %></td>
+          <td class="whitespace-nowrap"><%= dates.formatDate(c.created_at) %></td>
+          <td class="text-right"><%= c.order_count || 0 %></td>
+          <td class="text-right"><%= money(c.spent_cents || 0) %></td>
+          <td><span class="<%= c.is_disabled ? 'badge-muted' : 'badge-green' %>"><%= c.is_disabled ? 'Disabled' : 'Active' %></span></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/pagination', { page, pages, hrefFor: (n) => qs(query, { page: n }) }) %>

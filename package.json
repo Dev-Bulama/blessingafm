@@ -38,12 +38,17 @@
     "rotating-file-stream": "^4.0.0",
     "sanitize-html": "^2.18.1",
     "stripe": "^23.1.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "optionalDependencies": {
     "sharp": "^0.35.5"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.19"
+  },
+  "overrides": {
+    "express-mysql-session": {
+      "mysql2": "$mysql2"
+    }
   }
 }

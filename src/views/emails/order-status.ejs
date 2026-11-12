@@ -1,0 +1,21 @@
+<%
+  const messages = {
+    awaiting_payment: 'Your order is waiting for payment.',
+    paid: 'We have received your payment. Thank you! We will start preparing your order.',
+    processing: 'Good news - we are preparing your order now.',
+    ready_for_pickup: `Your order is ready to collect at ${settings.store_address_line1}, ${settings.store_city}. Please bring your order number.`,
+    out_for_delivery: 'Your order is on its way to you. Please make sure someone is available to receive it.',
+    shipped: 'Your order has been shipped.',
+    completed: 'Your order is complete. Thank you for shopping with us - we hope to see you again soon!',
+    cancelled: 'Your order has been cancelled. If you have already paid, we will refund you. Please contact us if you have any questions.',
+    refunded: 'Your order has been refunded. Depending on your payment method it can take a few business days to appear.',
+  };
+%>
+<h1 style="font-size:22px;margin:0 0 12px;">Order <%= order.order_number %>: <%= STATUS_LABELS[order.status] %></h1>
+<p style="margin:0 0 12px;">Hi <%= order.first_name %>,</p>
+<p style="margin:0 0 12px;"><%= messages[order.status] || `Your order status is now "${STATUS_LABELS[order.status]}".` %></p>
+<% if (order.status === 'ready_for_pickup' && order.pickup_date) { %><p style="margin:0 0 12px;">Your pickup time: <strong><%= dates.formatYmd(order.pickup_date, true) %>, <%= order.pickup_slot_label %></strong><%= order.payment_status !== 'paid' ? `. Amount to pay in store: ${money(order.total_cents)}.` : '.' %></p><% } %>
+<% if (order.status === 'shipped' && order.tracking_number) { %><p style="margin:0 0 12px;">Tracking number: <strong><%= order.tracking_carrier ? `${order.tracking_carrier} ` : '' %><%= order.tracking_number %></strong></p><% } %>
+<% if (note) { %><p style="margin:0 0 12px;padding:10px 14px;background:#FFF4B8;border-left:4px solid #D81E1E;"><strong>Message from the store:</strong> <%= note %></p><% } %>
+<%- include('_order') %>
+<p style="margin:20px 0 0;"><a href="<%= orderUrl %>" style="display:inline-block;background:#D81E1E;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;border:2px solid #111111;">View your order</a></p>

@@ -1,0 +1,42 @@
+<% const action = row ? `/admin/r/${resource.key}/${row.id}` : `/admin/r/${resource.key}`; const val = (f) => (old[f.name] !== undefined ? old[f.name] : values[f.name]); %>
+<p class="mb-2 text-sm"><a href="/admin/r/<%= resource.key %>" class="link">&larr; <%= resource.title %></a></p>
+<%- include('../partials/admin-head', { heading: title }) %>
+<form action="<%= action %>?_csrf=<%= encodeURIComponent(csrfToken) %>" method="post" enctype="multipart/form-data" class="panel max-w-3xl space-y-4">
+  <% resource.fields.forEach((f) => { const v = val(f); const err = errors[f.name]; %>
+    <% if (f.type === 'bool') { const on = old[f.name] !== undefined ? ['1', 'on', 'true'].includes(String(old[f.name])) : (Object.keys(old).length ? false : Boolean(v)); %>
+      <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="<%= f.name %>" value="1" class="checkbox" <%= on ? 'checked' : '' %>><%= f.label %></label>
+    <% } else if (f.type === 'richtext') { %>
+      <%- include('../partials/rte', { name: f.name, label: f.label, value: v, help: f.help }) %>
+    <% } else if (f.type === 'image') { %>
+      <div>
+        <label for="f-<%= f.name %>" class="label"><%= f.label %></label>
+        <% if (row && row[f.name]) { %>
+          <div class="mb-2 flex items-center gap-3"><img src="<%= upload(row[f.name]) %>" alt="Current image" class="h-20 w-20 rounded border border-neutral-300 object-cover">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="<%= f.name %>_remove" value="1" class="checkbox">Remove this image</label></div>
+        <% } %>
+        <input id="f-<%= f.name %>" type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" class="input">
+        <p class="help"><%= f.help || '' %> JPG, PNG, WebP or GIF, up to 5 MB.</p>
+      </div>
+    <% } else if (f.type === 'slug' && f.lockOnEdit && row) { %>
+      <div><p class="label"><%= f.label %></p><p class="rounded-lg bg-neutral-100 px-3 py-2 text-sm">/<%= row[f.name] %></p></div>
+    <% } else { %>
+      <div>
+        <label for="f-<%= f.name %>" class="label"><%= f.label %><% if (f.required) { %> <span class="text-brand-red-dark" aria-hidden="true">*</span><% } %></label>
+        <% if (f.type === 'textarea') { %>
+          <textarea id="f-<%= f.name %>" name="<%= f.name %>" rows="<%= f.rows || 3 %>" maxlength="<%= f.max || 5000 %>" class="input <%= err ? 'input-error' : '' %>" <%= f.required ? 'required' : '' %>><%= v === null || v === undefined ? '' : v %></textarea>
+        <% } else if (f.type === 'select') { %>
+          <select id="f-<%= f.name %>" name="<%= f.name %>" class="input <%= err ? 'input-error' : '' %>" <%= f.required ? 'required' : '' %>>
+            <% options[f.name].forEach(([ov, ol]) => { %><option value="<%= ov %>" <%= String(v === null || v === undefined ? '' : v) === String(ov) ? 'selected' : '' %>><%= ol %></option><% }) %>
+          </select>
+        <% } else { %>
+          <input id="f-<%= f.name %>" name="<%= f.name %>" value="<%= v === null || v === undefined ? '' : v %>" class="input <%= err ? 'input-error' : '' %>" <%= f.required ? 'required' : '' %>
+            type="<%= f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : f.type === 'time' ? 'time' : 'text' %>"
+            <%- f.type === 'money' ? 'inputmode="decimal" placeholder="0.00"' : '' %> <%- f.type === 'number' ? `min="${f.min ?? 0}" max="${f.max ?? ''}" step="1"` : '' %> <%- f.max && f.type === 'text' ? `maxlength="${f.max}"` : '' %>>
+        <% } %>
+        <% if (f.help) { %><p class="help"><%= f.help %></p><% } %>
+        <% if (err) { %><p class="field-error"><%= err %></p><% } %>
+      </div>
+    <% } %>
+  <% }) %>
+  <div class="flex gap-3 border-t border-neutral-200 pt-4"><button type="submit" class="btn-primary">Save</button><a href="/admin/r/<%= resource.key %>" class="btn-outline">Cancel</a></div>
+</form>

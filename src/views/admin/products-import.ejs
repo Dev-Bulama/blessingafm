@@ -1,0 +1,25 @@
+<p class="mb-2 text-sm"><a href="/admin/products" class="link">&larr; Products</a></p>
+<%- include('../partials/admin-head', { heading: 'Import products (CSV)', actions: [['/admin/products/export.csv', 'Download current products as CSV']] }) %>
+<% if (report) { %>
+  <div class="<%= report.errors.length ? 'alert-info' : 'alert-success' %> mb-5" role="status">
+    <p>Import finished: <%= report.created %> created, <%= report.updated %> updated, <%= report.errors.length %> skipped.</p>
+    <% if (report.errors.length) { %><ul class="mt-2 list-disc pl-5 font-normal"><% report.errors.slice(0, 100).forEach((e) => { %><li><%= e %></li><% }) %></ul><% } %>
+  </div>
+<% } %>
+<div class="grid gap-5 xl:grid-cols-2">
+  <form action="/admin/products/import?_csrf=<%= encodeURIComponent(csrfToken) %>" method="post" enctype="multipart/form-data" class="panel space-y-4">
+    <div><label class="label" for="file">CSV file</label><input id="file" type="file" name="file" accept=".csv,text/csv" required class="input"><p class="help">Up to 2,000 rows and 2 MB per file.</p></div>
+    <button type="submit" class="btn-primary">Import</button>
+  </form>
+  <div class="panel prose-store text-sm">
+    <h2>How it works</h2>
+    <ul>
+      <li>The easiest way to start is to export the current products, edit the file in Excel or Google Sheets, and import it again.</li>
+      <li>Rows are matched by <strong>sku</strong>. A known SKU is updated; an unknown SKU creates a new product (name, category_slug and price are then required).</li>
+      <li>For products with variants, each variant is its own row. Importing can change a variant's price, compare-at price, stock and weight. Create new variants in the product form.</li>
+      <li>Empty cells are left unchanged. Use 1 or 0 for the yes/no columns. Separate tags with <code>|</code>.</li>
+      <li>Stock changes are recorded in the stock history.</li>
+    </ul>
+    <p><strong>Columns:</strong> <%= columns.join(', ') %></p>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+<% if (!orders.length) { %><p class="text-sm text-neutral-700">No orders found.</p><% } else { %>
+<table class="table">
+  <thead><tr><th scope="col">Order</th><th scope="col">Placed</th><th scope="col">Customer</th><th scope="col">Method</th><th scope="col">Payment</th><th scope="col">Status</th><th scope="col" class="text-right">Total</th></tr></thead>
+  <tbody>
+    <% orders.forEach((o) => { %>
+      <tr>
+        <td class="whitespace-nowrap font-bold"><a href="/admin/orders/<%= o.id %>"><%= o.order_number %></a></td>
+        <td class="whitespace-nowrap"><%= dates.formatDateTime(o.created_at) %></td>
+        <td><%= o.first_name %> <%= o.last_name %><span class="block text-xs text-neutral-600"><%= o.email %></span></td>
+        <td><%= FULFILMENT_LABELS[o.fulfilment_method] %><% if (o.pickup_date) { %><span class="block text-xs text-neutral-600"><%= dates.formatYmd(o.pickup_date) %>, <%= o.pickup_slot_label %></span><% } %></td>
+        <td><%= PAYMENT_LABELS[o.payment_method] %><span class="block text-xs font-bold <%= o.payment_status === 'paid' ? 'text-brand-green-dark' : 'text-neutral-600' %>"><%= o.payment_status %></span></td>
+        <td><span class="status status-<%= o.status %>"><%= STATUS_LABELS[o.status] %></span></td>
+        <td class="text-right font-semibold"><%= money(o.total_cents) %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } %>

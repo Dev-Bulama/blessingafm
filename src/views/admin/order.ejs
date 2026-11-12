@@ -1,0 +1,68 @@
+<p class="mb-2 text-sm"><a href="/admin/orders" class="link">&larr; All orders</a></p>
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="h-display text-3xl sm:text-4xl">Order <%= order.order_number %></h1>
+    <p class="mt-1 flex flex-wrap items-center gap-2 text-sm"><span class="status status-<%= order.status %>"><%= STATUS_LABELS[order.status] %></span><span>Placed <%= dates.formatDateTime(order.created_at) %></span></p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="/admin/orders/<%= order.id %>/invoice" target="_blank" class="btn-outline btn-sm">Print invoice</a>
+    <a href="/admin/orders/<%= order.id %>/packing-slip" target="_blank" class="btn-outline btn-sm">Print packing slip</a>
+  </div>
+</div>
+
+<div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+  <div class="space-y-5">
+    <section class="panel" aria-label="Items"><%- include('../partials/order-summary', { order }) %></section>
+    <section aria-label="Fulfilment and payment"><%- include('../partials/order-fulfilment', { order }) %></section>
+    <section class="panel" aria-labelledby="pay-title">
+      <h2 id="pay-title" class="font-bold uppercase tracking-wide">Payment records</h2>
+      <% if (!order.payments.length) { %><p class="mt-2 text-sm text-neutral-700">No payment recorded yet.<%= order.payment_method === 'etransfer' ? ' When the e-Transfer arrives, change the status to "Paid".' : order.payment_method === 'in_store' ? ' Payment is recorded automatically when the order is marked completed.' : '' %></p><% } else { %>
+        <table class="table mt-2"><thead><tr><th scope="col">Date</th><th scope="col">Provider</th><th scope="col">Reference</th><th scope="col">Status</th><th scope="col" class="text-right">Amount</th></tr></thead>
+          <tbody><% order.payments.forEach((p) => { %><tr><td><%= dates.formatDateTime(p.created_at) %></td><td><%= p.provider %></td><td class="break-all text-xs"><%= p.provider_ref %></td><td><%= p.status %></td><td class="text-right"><%= money(p.amount_cents) %></td></tr><% }) %></tbody></table>
+      <% } %>
+    </section>
+    <section class="panel" aria-labelledby="hist-title">
+      <h2 id="hist-title" class="font-bold uppercase tracking-wide">Status history</h2>
+      <ol class="mt-2 space-y-2 border-l-4 border-brand-yellow pl-4 text-sm">
+        <% order.history.forEach((h) => { %>
+          <li><strong><%= STATUS_LABELS[h.status] || h.status %></strong> <span class="text-neutral-700">&middot; <%= dates.formatDateTime(h.created_at) %><%= h.by_first_name ? ` · ${h.by_first_name} ${h.by_last_name}` : ' · system' %><%= h.customer_notified ? ' · customer emailed' : '' %></span><% if (h.note) { %><span class="block"><%= h.note %></span><% } %></li>
+        <% }) %>
+      </ol>
+    </section>
+  </div>
+
+  <div class="space-y-5">
+    <section class="rounded-xl border-4 border-brand-black bg-brand-cream p-4" aria-labelledby="status-title">
+      <h2 id="status-title" class="h-display text-2xl">Update status</h2>
+      <% if (!next.length) { %><p class="mt-2 text-sm">This order is <%= STATUS_LABELS[order.status].toLowerCase() %> and cannot be changed further.</p><% } else { %>
+        <form action="/admin/orders/<%= order.id %>/status" method="post" class="mt-3 space-y-3" data-confirm-select>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div><label class="label" for="new-status">New status</label>
+            <select id="new-status" name="status" class="input" required><% next.forEach((s) => { %><option value="<%= s %>"><%= STATUS_LABELS[s] %><%= s === 'cancelled' ? ' (returns stock)' : '' %></option><% }) %></select></div>
+          <div><label class="label" for="note">Note to customer (optional)</label><textarea id="note" name="note" rows="2" maxlength="500" class="input"></textarea></div>
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="notify" value="1" class="checkbox" checked>Email the customer about this change</label>
+          <button type="submit" class="btn-primary btn-block">Update order</button>
+        </form>
+        <p class="mt-2 text-xs text-neutral-700">Refunds: issue the money back in Stripe (or by e-Transfer / in store) first, then set the status to Refunded here.</p>
+      <% } %>
+    </section>
+
+    <form action="/admin/orders/<%= order.id %>/details" method="post" class="panel space-y-3">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <h2 class="font-bold uppercase tracking-wide">Tracking &amp; notes</h2>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="label" for="carrier">Carrier</label><input id="carrier" name="tracking_carrier" value="<%= order.tracking_carrier || '' %>" maxlength="60" class="input" placeholder="Canada Post"></div>
+        <div><label class="label" for="tracking">Tracking number</label><input id="tracking" name="tracking_number" value="<%= order.tracking_number || '' %>" maxlength="80" class="input"></div>
+      </div>
+      <p class="help">Save the tracking number before setting the status to Shipped so it is included in the customer's email.</p>
+      <div><label class="label" for="internal">Internal notes (never shown to the customer)</label><textarea id="internal" name="internal_notes" rows="4" maxlength="5000" class="input"><%= order.internal_notes || '' %></textarea></div>
+      <button type="submit" class="btn-dark btn-sm">Save</button>
+    </form>
+
+    <section class="panel text-sm" aria-labelledby="cust-title">
+      <h2 id="cust-title" class="font-bold uppercase tracking-wide">Customer</h2>
+      <p class="mt-2"><%= order.first_name %> <%= order.last_name %><br><a href="mailto:<%= order.email %>" class="link break-all"><%= order.email %></a><br><a href="tel:<%= digits(order.phone) %>" class="link"><%= order.phone %></a></p>
+      <p class="mt-2"><% if (customer && currentUser.role === 'admin') { %><a href="/admin/customers/<%= customer.id %>" class="link">View customer account</a><% } else if (customer) { %>Registered customer<% } else { %>Guest checkout<% } %></p>
+    </section>
+  </div>
+</div>

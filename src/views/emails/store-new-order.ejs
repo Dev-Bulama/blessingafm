@@ -1,0 +1,5 @@
+<h1 style="font-size:22px;margin:0 0 12px;">New order <%= order.order_number %></h1>
+<p style="margin:0 0 12px;"><strong><%= order.first_name %> <%= order.last_name %></strong><br><%= order.email %> &middot; <%= order.phone %><br>Placed <%= dates.formatDateTime(order.created_at) %> &middot; Status: <strong><%= STATUS_LABELS[order.status] %></strong></p>
+<% if (order.payment_method === 'etransfer' && order.payment_status !== 'paid') { %><p style="margin:0 0 12px;background:#FFD400;padding:10px;border:1px solid #111111;">Waiting for an e-Transfer of <strong><%= money(order.total_cents) %></strong>. Mark the order as Paid when it arrives.</p><% } %>
+<%- include('_order') %>
+<p style="margin:20px 0 0;"><a href="<%= adminUrl %>" style="display:inline-block;background:#111111;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;">Open in admin</a></p>

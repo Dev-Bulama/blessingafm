@@ -1,0 +1,26 @@
+<%# Shared order block for emails: items, totals (with the tax line), fulfilment. %>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin:16px 0;">
+  <tr><th align="left" style="border-bottom:2px solid #111111;padding:6px 0;">Item</th><th align="right" style="border-bottom:2px solid #111111;padding:6px 0;">Qty</th><th align="right" style="border-bottom:2px solid #111111;padding:6px 0;">Total</th></tr>
+  <% order.items.forEach((i) => { %>
+    <tr><td style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= i.name %><% if (i.variant_name) { %> (<%= i.variant_name %>)<% } %><br><span style="color:#555555;font-size:12px;"><%= money(i.unit_price_cents) %> each<%= i.is_taxable ? '' : ' - zero-rated' %></span></td>
+      <td align="right" style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= i.qty %></td><td align="right" style="border-bottom:1px solid #dddddd;padding:8px 0;"><%= money(i.line_subtotal_cents) %></td></tr>
+  <% }) %>
+  <tr><td colspan="2" align="right" style="padding:8px 8px 2px 0;">Subtotal</td><td align="right" style="padding:8px 0 2px;"><%= money(order.subtotal_cents) %></td></tr>
+  <% if (order.discount_cents) { %><tr><td colspan="2" align="right" style="padding:2px 8px 2px 0;color:#166B2E;">Discount<%= order.coupon_code ? ` (${order.coupon_code})` : '' %></td><td align="right" style="padding:2px 0;color:#166B2E;">-<%= money(order.discount_cents) %></td></tr><% } %>
+  <tr><td colspan="2" align="right" style="padding:2px 8px 2px 0;"><%= order.shipping_label || FULFILMENT_LABELS[order.fulfilment_method] %></td><td align="right" style="padding:2px 0;"><%= order.shipping_cents ? money(order.shipping_cents) : 'Free' %></td></tr>
+  <tr><td colspan="2" align="right" style="padding:2px 8px 2px 0;"><%= order.tax_label %> (<%= bpsToPercentLabel(order.tax_rate_bps) %>) on taxable items</td><td align="right" style="padding:2px 0;"><%= money(order.tax_cents) %></td></tr>
+  <tr><td colspan="2" align="right" style="padding:8px 8px 0 0;font-weight:bold;font-size:16px;">Total (CAD)</td><td align="right" style="padding:8px 0 0;font-weight:bold;font-size:16px;"><%= money(order.total_cents) %></td></tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;background:#FFF4B8;border:1px solid #111111;">
+  <tr><td style="padding:12px 14px;">
+    <strong><%= FULFILMENT_LABELS[order.fulfilment_method] %></strong><br>
+    <% if (order.fulfilment_method === 'pickup') { %>
+      <%= dates.formatYmd(order.pickup_date, true) %>, <%= order.pickup_slot_label %><br><%= settings.store_address_line1 %>, <%= settings.store_city %>, <%= settings.store_province %>
+    <% } else { %>
+      <%= order.ship_name %><br><%= order.ship_line1 %><% if (order.ship_line2) { %>, <%= order.ship_line2 %><% } %><br><%= order.ship_city %>, <%= order.ship_province %> <%= order.ship_postal_code %>
+      <% if (order.tracking_number) { %><br>Tracking: <%= order.tracking_carrier %> <%= order.tracking_number %><% } %>
+    <% } %>
+    <br><br><strong>Payment:</strong> <%= PAYMENT_LABELS[order.payment_method] %> - <%= order.payment_status === 'paid' ? 'paid' : order.payment_status === 'refunded' ? 'refunded' : 'not yet paid' %>
+    <% if (order.customer_note) { %><br><strong>Note:</strong> <%= order.customer_note %><% } %>
+  </td></tr>
+</table>

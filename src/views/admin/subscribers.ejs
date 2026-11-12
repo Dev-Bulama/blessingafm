@@ -1,0 +1,11 @@
+<%- include('../partials/admin-head', { heading: `Newsletter subscribers (${active} active)`, actions: [['/admin/subscribers/export.csv', 'Export CSV', 'btn-primary']] }) %>
+<div class="panel overflow-x-auto">
+  <% if (!rows.length) { %><p class="text-sm text-neutral-700">No subscribers yet.</p><% } else { %>
+  <table class="table">
+    <thead><tr><th scope="col">Email</th><th scope="col">Source</th><th scope="col">Subscribed</th><th scope="col">Status</th></tr></thead>
+    <tbody><% rows.forEach((s) => { %><tr><td><%= s.email %></td><td><%= s.source || '-' %></td><td class="whitespace-nowrap"><%= dates.formatDate(s.created_at) %></td><td><span class="<%= s.is_subscribed ? 'badge-green' : 'badge-muted' %>"><%= s.is_subscribed ? 'Subscribed' : 'Unsubscribed' %></span></td></tr><% }) %></tbody>
+  </table>
+  <% } %>
+</div>
+<p class="mt-3 text-sm text-neutral-700">The export contains active subscribers only. Import it into your email marketing tool to send newsletters.</p>
+<%- include('../partials/pagination', { page, pages, hrefFor: (n) => `/admin/subscribers?page=${n}` }) %>

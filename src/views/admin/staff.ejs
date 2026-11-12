@@ -1,0 +1,43 @@
+<%- include('../partials/admin-head', { heading: 'Staff accounts' }) %>
+<p class="mb-4 max-w-3xl text-sm text-neutral-800"><strong>Admins</strong> can do everything. <strong>Staff</strong> can work with orders, products, categories, brands and inventory only.</p>
+<div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+  <div class="panel overflow-x-auto">
+    <table class="table">
+      <thead><tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Last sign-in</th><th scope="col">Change</th></tr></thead>
+      <tbody>
+        <% users.forEach((u) => { const me = u.id === currentUser.id; %>
+          <tr>
+            <td><strong><%= u.first_name %> <%= u.last_name %></strong><%= me ? ' (you)' : '' %><span class="block text-xs text-neutral-600"><%= u.email %></span></td>
+            <td><span class="<%= u.role === 'admin' ? 'badge-dark' : 'badge-yellow' %>"><%= u.role %></span></td>
+            <td><%= u.is_disabled ? 'Disabled' : 'Active' %></td>
+            <td class="whitespace-nowrap"><%= u.last_login_at ? dates.formatDateTime(u.last_login_at) : 'Never' %></td>
+            <td>
+              <% if (!me) { %>
+                <form action="/admin/staff/<%= u.id %>" method="post" class="flex gap-2" data-confirm="Apply this change to <%= u.email %>?">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <label class="sr-only" for="action-<%= u.id %>">Action for <%= u.email %></label>
+                  <select id="action-<%= u.id %>" name="action" class="input w-auto">
+                    <% if (u.role === 'staff') { %><option value="make_admin">Make admin</option><% } else { %><option value="make_staff">Make staff</option><% } %>
+                    <% if (u.is_disabled) { %><option value="enable">Enable sign-in</option><% } else { %><option value="disable">Disable sign-in</option><% } %>
+                    <option value="remove">Remove admin access</option>
+                  </select>
+                  <button type="submit" class="btn-dark btn-sm">Apply</button>
+                </form>
+              <% } else { %><span class="text-xs text-neutral-600">Change your password under My account.</span><% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <form action="/admin/staff" method="post" class="panel space-y-4" autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <h2 class="font-bold uppercase tracking-wide">Add a team member</h2>
+    <%- include('../partials/field', { name: 'first_name', label: 'First name', required: true }) %>
+    <%- include('../partials/field', { name: 'last_name', label: 'Last name', required: true }) %>
+    <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', required: true }) %>
+    <%- include('../partials/field', { name: 'password', label: 'Temporary password', type: 'password', required: true, autocomplete: 'new-password', help: 'At least 10 characters. Ask them to change it after signing in.' }) %>
+    <%- include('../partials/field', { name: 'role', label: 'Role', type: 'select', options: [['staff', 'Staff'], ['admin', 'Admin']] }) %>
+    <button type="submit" class="btn-primary">Create account</button>
+  </form>
+</div>

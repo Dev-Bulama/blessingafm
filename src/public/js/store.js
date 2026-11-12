@@ -342,15 +342,15 @@
     var addBtn = $('[data-add-button]', productForm);
     var status = $('[data-stock-status]', productForm);
     var applyVariant = function (radio) {
-      var stock = Number(radio.getAttribute('data-stock'));
-      $('[data-price]').textContent = radio.getAttribute('data-price');
-      var compare = radio.getAttribute('data-compare');
+      var stock = Number(radio.getAttribute('data-vstock'));
+      $('[data-price]').textContent = radio.getAttribute('data-vprice');
+      var compare = radio.getAttribute('data-vcompare');
       $('[data-compare]').classList.toggle('hidden', !compare);
       $('[data-compare-value]').textContent = compare;
-      var save = Number(radio.getAttribute('data-save'));
+      var save = Number(radio.getAttribute('data-vsave'));
       $('[data-save]').classList.toggle('hidden', !(save > 0));
       $('[data-save-value]').textContent = save;
-      $('[data-sku]').textContent = radio.getAttribute('data-sku');
+      $('[data-sku]').textContent = radio.getAttribute('data-vsku');
       qty.max = Math.max(1, Math.min(99, stock));
       if (Number(qty.value) > Number(qty.max)) qty.value = qty.max;
       addBtn.disabled = stock <= 0;

@@ -1,0 +1,36 @@
+<%- include('../partials/admin-head', { heading: 'Inventory', actions: [['/admin/inventory/logs', 'Stock history'], ['/admin/products/bulk', 'Bulk edit']] }) %>
+<form method="get" class="mb-4 flex flex-wrap items-center gap-3" role="search">
+  <label for="q" class="sr-only">Search</label><input id="q" type="search" name="q" value="<%= q %>" placeholder="Name or SKU" class="input max-w-xs">
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="low" value="1" class="checkbox" <%= low ? 'checked' : '' %>>Low stock only</label>
+  <button type="submit" class="btn-dark btn-sm">Filter</button>
+</form>
+<div class="panel overflow-x-auto">
+  <% if (!rows.length) { %><p class="text-sm text-neutral-700">No items found.</p><% } else { %>
+  <table class="table">
+    <thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" class="text-right">In stock</th><th scope="col">Adjust</th></tr></thead>
+    <tbody>
+      <% rows.forEach((r) => { const label = `${r.name}${r.variant_name ? ` (${r.variant_name})` : ''}`; const uid = r.variant_id ? `v${r.variant_id}` : `p${r.product_id}`; %>
+        <tr>
+          <td><a href="/admin/products/<%= r.product_id %>/edit"><%= r.name %></a><% if (r.variant_name) { %> <span class="text-neutral-700">(<%= r.variant_name %>)</span><% } %> <a href="/admin/inventory/logs?product=<%= r.product_id %>" class="text-xs text-neutral-600 underline">history</a></td>
+          <td class="whitespace-nowrap"><%= r.sku %></td>
+          <td class="text-right text-lg font-bold <%= r.stock_qty <= r.low_stock_threshold ? 'text-brand-red-dark' : '' %>"><%= r.stock_qty %><% if (r.stock_qty <= r.low_stock_threshold) { %><span class="sr-only"> (low)</span><% } %></td>
+          <td>
+            <form action="/admin/inventory/adjust" method="post" class="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="product_id" value="<%= r.product_id %>"><input type="hidden" name="variant_id" value="<%= r.variant_id || '' %>">
+              <input type="hidden" name="return_to" value="/admin/inventory<%= qs(query, {}) === '?' ? '' : qs(query, {}) %>">
+              <label class="sr-only" for="mode-<%= uid %>">Adjustment type for <%= label %></label>
+              <select id="mode-<%= uid %>" name="mode" class="input w-auto"><option value="add">Add</option><option value="remove">Remove</option><option value="set">Set to</option></select>
+              <label class="sr-only" for="qty-<%= uid %>">Quantity for <%= label %></label>
+              <input id="qty-<%= uid %>" type="number" name="qty" min="0" step="1" required class="input w-20" placeholder="Qty">
+              <label class="sr-only" for="note-<%= uid %>">Reason for <%= label %></label>
+              <input id="note-<%= uid %>" name="note" maxlength="255" class="input w-40" placeholder="Reason (optional)">
+              <button type="submit" class="btn-dark btn-sm">Apply</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/admin-pager', { page, hasMore, hrefFor: (n) => qs(query, { page: n }) }) %>

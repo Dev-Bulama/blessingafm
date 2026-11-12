@@ -1,0 +1,27 @@
+<%- include('../partials/admin-head', { heading: resource.title, actions: [[`/admin/r/${resource.key}/new`, `Add ${resource.singular.toLowerCase()}`, 'btn-primary']] }) %>
+<% if (resource.intro) { %><p class="mb-4 max-w-3xl text-sm text-neutral-800"><%= resource.intro %></p><% } %>
+<% if (resource.search) { %>
+  <form method="get" class="mb-4 flex max-w-md gap-2" role="search"><label for="q" class="sr-only">Search <%= resource.title.toLowerCase() %></label><input id="q" type="search" name="q" value="<%= q %>" placeholder="Search&hellip;" class="input"><button type="submit" class="btn-dark btn-sm">Search</button></form>
+<% } %>
+<div class="panel overflow-x-auto">
+  <% if (!rows.length) { %><p class="text-sm text-neutral-700">Nothing here yet.</p><% } else { %>
+  <table class="table">
+    <thead><tr><% resource.columns.forEach((c) => { %><th scope="col"><%= c.label %></th><% }) %><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+      <% rows.forEach((row) => { %>
+        <tr>
+          <% resource.columns.forEach((c, i) => { const v = c.format ? c.format(row[c.key], row) : row[c.key]; %>
+            <td><% if (i === 0) { %><a href="/admin/r/<%= resource.key %>/<%= row.id %>/edit" class="font-bold"><%= v %></a><% } else { %><%= v === null || v === undefined ? '-' : v %><% } %></td>
+          <% }) %>
+          <td class="whitespace-nowrap text-right">
+            <a href="/admin/r/<%= resource.key %>/<%= row.id %>/edit" class="btn-outline btn-sm">Edit</a>
+            <form action="/admin/r/<%= resource.key %>/<%= row.id %>/delete" method="post" class="inline" data-confirm="Delete this <%= resource.singular.toLowerCase() %>? This cannot be undone.">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn-outline btn-sm">Delete</button></form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/pagination', { page, pages, hrefFor: (n) => qs(query, { page: n }) }) %>

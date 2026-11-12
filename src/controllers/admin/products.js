@@ -13,7 +13,7 @@ const { uniqueSlug, slugify } = require('../../lib/slug');
 
 const PER_PAGE = 30;
 
-const money = (label, { nullable = false } = {}) => z.any().transform((v, ctx) => {
+const money = (label, { nullable = false } = {}) => z.any().optional().transform((v, ctx) => {
   if (v === undefined || v === null || String(v).trim() === '') {
     if (nullable) return null;
     ctx.addIssue({ code: 'custom', message: `${label} is required` });
@@ -23,17 +23,17 @@ const money = (label, { nullable = false } = {}) => z.any().transform((v, ctx) =
   if (cents === null || cents > 100000000) { ctx.addIssue({ code: 'custom', message: `${label}: enter an amount such as 12.99` }); return z.NEVER; }
   return cents;
 });
-const int = (label, min, max, fallback) => z.any().transform((v, ctx) => {
+const int = (label, min, max, fallback) => z.any().optional().transform((v, ctx) => {
   if (v === undefined || v === null || String(v).trim() === '') return fallback;
   const n = Number(v);
   if (!Number.isInteger(n) || n < min || n > max) { ctx.addIssue({ code: 'custom', message: `${label} must be a whole number between ${min} and ${max}` }); return z.NEVER; }
   return n;
 });
-const text = (max) => z.any().transform((v) => (v === undefined || v === null ? '' : String(v).trim().slice(0, max)));
-const sku = z.string({ required_error: 'SKU is required' }).trim().min(1, 'SKU is required').max(64).regex(/^[A-Za-z0-9._-]+$/, 'SKU can only contain letters, numbers, dots, dashes and underscores');
+const text = (max) => z.any().optional().transform((v) => (v === undefined || v === null ? '' : String(v).trim().slice(0, max)));
+const sku = z.string({ error: 'SKU is required' }).trim().min(1, 'SKU is required').max(64).regex(/^[A-Za-z0-9._-]+$/, 'SKU can only contain letters, numbers, dots, dashes and underscores');
 
 const variantSchema = z.object({
-  id: z.any().transform((v) => (v ? Number(v) || null : null)),
+  id: z.any().optional().transform((v) => (v ? Number(v) || null : null)),
   name: z.string().trim().min(1, 'Each variant needs a name').max(120),
   sku,
   price: money('Variant price'),
@@ -45,14 +45,14 @@ const variantSchema = z.object({
 });
 
 const productSchema = z.object({
-  name: z.string({ required_error: 'Name is required' }).trim().min(1, 'Name is required').max(190),
+  name: z.string({ error: 'Name is required' }).trim().min(1, 'Name is required').max(190),
   slug: text(200),
   sku,
-  category_id: z.coerce.number({ invalid_type_error: 'Choose a category' }).int().positive('Choose a category'),
-  brand_id: z.any().transform((v) => (v ? Number(v) || null : null)),
+  category_id: z.coerce.number({ error: 'Choose a category' }).int().positive('Choose a category'),
+  brand_id: z.any().optional().transform((v) => (v ? Number(v) || null : null)),
   short_description: text(300),
-  description: z.any().transform((v) => sanitizeRich(String(v || '').slice(0, 100000))),
-  details: z.any().transform((v) => sanitizeRich(String(v || '').slice(0, 100000))),
+  description: z.any().optional().transform((v) => sanitizeRich(String(v || '').slice(0, 100000))),
+  details: z.any().optional().transform((v) => sanitizeRich(String(v || '').slice(0, 100000))),
   price: money('Price', { nullable: true }),
   compare_at: money('Compare-at price', { nullable: true }),
   stock: int('Stock', 0, 1000000, 0),
@@ -67,7 +67,7 @@ const productSchema = z.object({
   variants: z.preprocess((v) => (v && typeof v === 'object' ? Object.values(v) : []), z.array(variantSchema).max(60)),
   image_order: text(2000),
   image_delete: z.preprocess((v) => (v === undefined ? [] : Array.isArray(v) ? v : [v]), z.array(z.coerce.number().int()).max(100)),
-  image_alt: z.preprocess((v) => (v && typeof v === 'object' ? v : {}), z.record(z.string().max(190))),
+  image_alt: z.preprocess((v) => (v && typeof v === 'object' ? v : {}), z.record(z.string(), z.string().max(190))),
 });
 
 /** GET /admin/products */
@@ -261,7 +261,7 @@ async function bulkForm(req, res) {
 }
 
 const bulkSchema = z.object({
-  items: z.record(z.object({ price: z.string().max(20), compare_at: z.string().max(20).optional(), stock: z.string().max(10) })).default({}),
+  items: z.record(z.string(), z.object({ price: z.string().max(20), compare_at: z.string().max(20).optional(), stock: z.string().max(10) })).default({}),
 });
 
 /** POST /admin/products/bulk */

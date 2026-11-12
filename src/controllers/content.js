@@ -49,7 +49,7 @@ const contactSchema = z.object({
   email,
   phone: optionalText(30),
   subject: optionalText(190),
-  message: z.string({ required_error: 'Message is required' }).trim().min(10, 'Please write at least a sentence').max(5000),
+  message: z.string({ error: 'Message is required' }).trim().min(10, 'Please write at least a sentence').max(5000),
   website: z.string().max(0).optional(), // honeypot: real visitors leave it empty
 });
 

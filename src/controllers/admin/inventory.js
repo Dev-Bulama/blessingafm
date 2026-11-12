@@ -20,9 +20,9 @@ async function list(req, res) {
 
 const adjustSchema = z.object({
   product_id: z.coerce.number().int().positive(),
-  variant_id: z.any().transform((v) => (v ? Number(v) || null : null)),
+  variant_id: z.any().optional().transform((v) => (v ? Number(v) || null : null)),
   mode: z.enum(['set', 'add', 'remove']),
-  qty: z.coerce.number({ invalid_type_error: 'Enter a quantity' }).int('Enter a whole number').min(0).max(1000000),
+  qty: z.coerce.number({ error: 'Enter a quantity' }).int('Enter a whole number').min(0).max(1000000),
   note: z.string().trim().max(255).optional(),
   return_to: z.string().max(300).optional(),
 });

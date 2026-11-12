@@ -1,0 +1,24 @@
+<%# Rich text field. Without JavaScript it is a plain HTML textarea; admin.js upgrades it to an editor. Usage: include('../partials/rte', { name, label, value, help }) %>
+<div>
+  <label for="rte-<%= name %>" class="label"><%= label %></label>
+  <div class="rte" data-rte>
+    <div class="rte-toolbar" role="toolbar" aria-label="Formatting for <%= label %>" hidden>
+      <button type="button" data-cmd="bold" aria-label="Bold"><strong>B</strong></button>
+      <button type="button" data-cmd="italic" aria-label="Italic"><em>I</em></button>
+      <button type="button" data-cmd="underline" aria-label="Underline"><u>U</u></button>
+      <button type="button" data-block="h2">Heading</button>
+      <button type="button" data-block="h3">Subheading</button>
+      <button type="button" data-block="p">Paragraph</button>
+      <button type="button" data-cmd="insertUnorderedList">Bullets</button>
+      <button type="button" data-cmd="insertOrderedList">Numbers</button>
+      <button type="button" data-block="blockquote">Quote</button>
+      <button type="button" data-link>Link</button>
+      <button type="button" data-cmd="unlink">Unlink</button>
+      <button type="button" data-cmd="removeFormat">Clear</button>
+      <button type="button" data-source aria-pressed="false">HTML</button>
+    </div>
+    <div class="rte-area prose-store" contenteditable="true" role="textbox" aria-multiline="true" aria-label="<%= label %>" hidden></div>
+    <textarea id="rte-<%= name %>" name="<%= name %>" rows="10" class="block w-full rounded-lg p-3 font-mono text-sm focus:outline-none"><%= value || '' %></textarea>
+  </div>
+  <% if (typeof help !== 'undefined' && help) { %><p class="help"><%= help %></p><% } %>
+</div>

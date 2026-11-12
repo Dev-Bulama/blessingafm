@@ -1,0 +1,7 @@
+<%# Page heading with optional action buttons. Usage: include('../partials/admin-head', { heading, actions: [[url, label, cls]] }) %>
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="h-display text-3xl sm:text-4xl"><%= heading %></h1>
+  <% if (typeof actions !== 'undefined' && actions.length) { %>
+    <div class="flex flex-wrap gap-2"><% actions.forEach(([url, label, cls]) => { %><a href="<%= url %>" class="<%= cls || 'btn-outline' %> btn-sm"><%= label %></a><% }) %></div>
+  <% } %>
+</div>

@@ -1,0 +1,8 @@
+<%# Simple previous/next pager for lists without a total count. Usage: include('../partials/admin-pager', { page, hasMore, hrefFor }) %>
+<% if (page > 1 || hasMore) { %>
+<nav aria-label="Pagination" class="mt-4 flex items-center justify-between">
+  <% if (page > 1) { %><a href="<%= hrefFor(page - 1) %>" class="btn-outline btn-sm" rel="prev">&larr; Previous</a><% } else { %><span></span><% } %>
+  <span class="text-sm text-neutral-700">Page <%= page %></span>
+  <% if (hasMore) { %><a href="<%= hrefFor(page + 1) %>" class="btn-outline btn-sm" rel="next">Next &rarr;</a><% } else { %><span></span><% } %>
+</nav>
+<% } %>

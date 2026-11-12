@@ -16,21 +16,21 @@ function buildSchema(fields) {
     const label = f.label.replace(/\s*\(.*\)$/, '');
     const empty = (v) => v === undefined || v === null || String(v).trim() === '';
     const requiredCheck = (schema) => (f.required
-      ? z.any().refine((v) => !empty(v), `${label} is required`).pipe(schema)
-      : z.any().transform((v) => (empty(v) ? undefined : v)).pipe(schema.optional()));
+      ? z.any().optional().refine((v) => !empty(v), `${label} is required`).pipe(schema)
+      : z.any().optional().transform((v) => (empty(v) ? undefined : v)).pipe(schema.optional()));
     switch (f.type) {
       case 'text':
       case 'textarea':
         shape[f.name] = requiredCheck(z.coerce.string().trim().max(f.max || 255, `${label} is too long`)).transform((v) => v ?? null);
         break;
       case 'slug':
-        shape[f.name] = z.any().transform((v) => (empty(v) ? '' : slugify(v)));
+        shape[f.name] = z.any().optional().transform((v) => (empty(v) ? '' : slugify(v)));
         break;
       case 'richtext':
-        shape[f.name] = z.any().transform((v) => sanitizeRich(empty(v) ? '' : String(v).slice(0, 200000)));
+        shape[f.name] = z.any().optional().transform((v) => sanitizeRich(empty(v) ? '' : String(v).slice(0, 200000)));
         break;
       case 'number':
-        shape[f.name] = requiredCheck(z.coerce.number({ invalid_type_error: `${label} must be a number` }).int(`${label} must be a whole number`)
+        shape[f.name] = requiredCheck(z.coerce.number({ error: `${label} must be a number` }).int(`${label} must be a whole number`)
           .min(f.min ?? 0, `${label} is too small`).max(f.max ?? 1000000000, `${label} is too large`))
           .transform((v) => (v === undefined ? (f.nullable ? null : f.default ?? 0) : v));
         break;
@@ -42,7 +42,7 @@ function buildSchema(fields) {
         })).transform((v) => (v === undefined ? (f.nullable ? null : f.default ?? 0) : v));
         break;
       case 'bool':
-        shape[f.name] = z.any().transform((v) => v === '1' || v === 'on' || v === true || v === 'true');
+        shape[f.name] = z.any().optional().transform((v) => v === '1' || v === 'on' || v === true || v === 'true');
         break;
       case 'select':
         shape[f.name] = requiredCheck(z.coerce.string().max(100)).transform((v) => (v === undefined ? null : f.numeric ? Number(v) : v));

@@ -1,0 +1,11 @@
+<%- include('../partials/admin-head', { heading: `Orders (${total})` }) %>
+<form method="get" class="panel mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6" role="search" aria-label="Filter orders">
+  <div class="lg:col-span-2"><label class="label" for="q">Search</label><input id="q" type="search" name="q" value="<%= f.q %>" placeholder="Order no., name, email, phone" class="input"></div>
+  <div><label class="label" for="status">Status</label><select id="status" name="status" class="input"><option value="">All</option><% statuses.forEach((s) => { %><option value="<%= s %>" <%= f.status === s ? 'selected' : '' %>><%= STATUS_LABELS[s] %></option><% }) %></select></div>
+  <div><label class="label" for="fulfilment">Method</label><select id="fulfilment" name="fulfilment" class="input"><option value="">All</option><% Object.entries(FULFILMENT_LABELS).forEach(([k, l]) => { %><option value="<%= k %>" <%= f.fulfilment === k ? 'selected' : '' %>><%= l %></option><% }) %></select></div>
+  <div><label class="label" for="payment">Payment</label><select id="payment" name="payment" class="input"><option value="">All</option><% ['unpaid', 'paid', 'refunded'].forEach((p) => { %><option value="<%= p %>" <%= f.payment === p ? 'selected' : '' %>><%= p %></option><% }) %></select></div>
+  <div class="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-1"><div><label class="label" for="from">From</label><input id="from" type="date" name="from" value="<%= f.from %>" class="input"></div><div><label class="label" for="to">To</label><input id="to" type="date" name="to" value="<%= f.to %>" class="input"></div></div>
+  <div class="flex gap-2 sm:col-span-2 lg:col-span-6"><button type="submit" class="btn-dark btn-sm">Filter</button><a href="/admin/orders" class="btn-outline btn-sm">Reset</a></div>
+</form>
+<div class="panel overflow-x-auto"><%- include('../partials/admin-orders-table', { orders }) %></div>
+<%- include('../partials/pagination', { page, pages, hrefFor: (n) => qs(query, { page: n }) }) %>

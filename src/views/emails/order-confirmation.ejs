@@ -1,0 +1,18 @@
+<h1 style="font-size:22px;margin:0 0 12px;">Thank you, <%= order.first_name %>!</h1>
+<p style="margin:0 0 12px;">We have received your order <strong><%= order.order_number %></strong>, placed on <%= dates.formatDateTime(order.created_at) %>.</p>
+<% if (order.payment_method === 'etransfer' && order.payment_status !== 'paid') { %>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFD400;border:2px solid #111111;margin:12px 0;"><tr><td style="padding:14px;">
+    <strong style="font-size:16px;">Pay by Interac e-Transfer</strong><br>
+    Send <strong><%= money(order.total_cents) %></strong> to <strong><%= settings.etransfer_email %></strong><br>
+    Message: <strong><%= order.order_number %></strong><br><br>
+    <span style="font-size:13px;"><%= settings.etransfer_instructions %></span>
+  </td></tr></table>
+<% } else if (order.payment_method === 'in_store') { %>
+  <p style="margin:0 0 12px;">Please pay <strong><%= money(order.total_cents) %></strong> in store when you collect your order, and bring your order number.</p>
+<% } else if (order.payment_status === 'paid') { %>
+  <p style="margin:0 0 12px;">Your payment of <strong><%= money(order.total_cents) %></strong> was received. Thank you.</p>
+<% } %>
+<p style="margin:0 0 12px;"><%= order.fulfilment_method === 'pickup' ? 'We will email you as soon as your order is ready to collect.' : order.fulfilment_method === 'delivery' ? 'We will contact you to arrange your delivery window.' : 'We will email your tracking number when your parcel ships.' %></p>
+<%- include('_order') %>
+<p style="margin:20px 0 0;"><a href="<%= orderUrl %>" style="display:inline-block;background:#D81E1E;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 20px;border:2px solid #111111;">View your order</a></p>
+<p style="margin:16px 0 0;font-size:13px;color:#555555;">Questions? Reply to this email<% if (settings.store_phone) { %> or call <%= settings.store_phone %><% } %>.</p>

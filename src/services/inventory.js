@@ -29,7 +29,8 @@ async function adjust(trx, { productId, variantId = null, delta, reason, note = 
     affected = await trx(table).where(where).increment('stock_qty', delta);
   }
   if (!affected) {
-    const row = await trx(table).where(where).first('stock_qty');
+    // Locking read: returns the latest committed quantity, not this transaction's older snapshot.
+    const row = await trx(table).where(where).forUpdate().first('stock_qty');
     const left = row ? Math.max(0, row.stock_qty) : 0;
     throw new OutOfStockError(
       left > 0 ? `Only ${left} left of ${label}. Please update your cart.` : `${label} is now out of stock. Please remove it from your cart.`,

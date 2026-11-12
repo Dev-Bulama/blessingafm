@@ -40,16 +40,16 @@ function validate(schema, { source = 'body', back = null } = {}) {
 }
 
 // ---------- Reusable field schemas ----------
-const trimmed = (max, label = 'This field') => z.string({ required_error: `${label} is required` }).trim()
+const trimmed = (max, label = 'This field') => z.string({ error: `${label} is required` }).trim()
   .min(1, `${label} is required`).max(max, `${label} is too long`);
 const optionalText = (max) => z.string().trim().max(max, 'Too long').optional().transform((v) => v || null);
-const email = z.string({ required_error: 'Email is required' }).trim().toLowerCase().max(190).email('Enter a valid email address');
-const phone = z.string({ required_error: 'Phone number is required' }).trim().min(7, 'Enter a valid phone number').max(30)
+const email = z.string({ error: 'Email is required' }).trim().toLowerCase().max(190).email('Enter a valid email address');
+const phone = z.string({ error: 'Phone number is required' }).trim().min(7, 'Enter a valid phone number').max(30)
   .regex(/^[0-9+()\-.\s]+$/, 'Enter a valid phone number');
-const password = z.string({ required_error: 'Password is required' }).min(10, 'Use at least 10 characters').max(200);
+const password = z.string({ error: 'Password is required' }).min(10, 'Use at least 10 characters').max(200);
 const id = z.coerce.number().int().positive();
 const checkbox = z.preprocess((v) => v === 'on' || v === '1' || v === 'true' || v === true, z.boolean());
-const postalCode = z.string({ required_error: 'Postal code is required' }).trim().toUpperCase()
+const postalCode = z.string({ error: 'Postal code is required' }).trim().toUpperCase()
   .transform((v) => v.replace(/[^A-Z0-9]/g, ''))
   .refine((v) => /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z]\d[ABCEGHJ-NPRSTV-Z]\d$/.test(v), 'Enter a valid Canadian postal code');
 const province = z.enum(['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'], { message: 'Choose a province' });

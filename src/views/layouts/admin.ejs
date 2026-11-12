@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= title ? `${title} | ` : '' %>Admin | <%= settings.store_name %></title>
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="<%= asset('css/app.css') %>">
+</head>
+<%
+  const isAdmin = currentUser.role === 'admin';
+  const groups = [
+    { label: 'Store', items: [['/admin', 'Dashboard'], ['/admin/orders', 'Orders'], ['/admin/products', 'Products'], ['/admin/inventory', 'Inventory'], ['/admin/r/categories', 'Categories'], ['/admin/r/brands', 'Brands']] },
+    isAdmin ? { label: 'Customers', items: [['/admin/customers', 'Customers'], ['/admin/reviews', 'Reviews'], ['/admin/messages', 'Messages'], ['/admin/subscribers', 'Subscribers']] } : null,
+    isAdmin ? { label: 'Selling', items: [['/admin/r/coupons', 'Coupons'], ['/admin/r/delivery-zones', 'Delivery zones'], ['/admin/r/shipping-rates', 'Shipping rates'], ['/admin/r/pickup-slots', 'Pickup slots']] } : null,
+    isAdmin ? { label: 'Content', items: [['/admin/r/banners', 'Hero banners'], ['/admin/r/pages', 'Pages'], ['/admin/r/faqs', 'FAQs']] } : null,
+    isAdmin ? { label: 'System', items: [['/admin/settings', 'Settings'], ['/admin/staff', 'Staff'], ['/admin/audit', 'Audit log']] } : null,
+  ].filter(Boolean);
+  const here = path.replace(/\/$/, '') || '/admin';
+  const isActive = (url) => (url === '/admin' ? here === '/admin' : here === url || here.startsWith(url + '/'));
+%>
+<body class="min-h-screen bg-neutral-100" data-csrf="<%= csrfToken %>">
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <div class="lg:flex lg:min-h-screen">
+    <aside class="on-dark no-print bg-brand-black text-white lg:w-60 lg:shrink-0">
+      <div class="flex items-center justify-between px-4 py-3">
+        <a href="/admin" class="font-display text-xl uppercase tracking-wide text-brand-yellow no-underline">Blessing Admin</a>
+        <button type="button" class="rounded border border-neutral-600 px-3 py-1 text-sm font-bold lg:hidden" data-admin-nav-toggle aria-controls="admin-nav" aria-expanded="false">Menu</button>
+      </div>
+      <nav id="admin-nav" aria-label="Admin" class="hidden px-2 pb-4 lg:block" data-admin-nav>
+        <% groups.forEach((g) => { %>
+          <p class="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-widest text-neutral-400"><%= g.label %></p>
+          <ul class="space-y-0.5">
+            <% g.items.forEach(([url, label]) => { %><li><a href="<%= url %>" class="admin-link <%= isActive(url) ? 'is-active' : '' %>" <%= isActive(url) ? 'aria-current=page' : '' %>><%= label %></a></li><% }) %>
+          </ul>
+        <% }) %>
+        <div class="mt-6 space-y-1 border-t border-neutral-700 pt-4">
+          <a href="/" class="admin-link" target="_blank" rel="noopener">View store &nearr;</a>
+          <form action="/account/logout" method="post"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="admin-link w-full text-left">Sign out</button></form>
+          <p class="px-3 pt-2 text-xs text-neutral-400"><%= currentUser.first_name %> <%= currentUser.last_name %> (<%= currentUser.role %>)</p>
+        </div>
+      </nav>
+    </aside>
+    <div class="min-w-0 flex-1">
+      <%- include('../partials/flash') %>
+      <main id="main" class="p-4 sm:p-6" tabindex="-1">
+        <%- body %>
+      </main>
+    </div>
+  </div>
+  <script src="<%= asset('js/admin.js') %>" defer></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<%
+  const p = product || {};
+  const posted = Object.keys(old).length > 0;
+  const v = (name, fallback) => (old[name] !== undefined ? old[name] : (fallback === null || fallback === undefined ? '' : fallback));
+  const on = (name, fallback) => (posted ? ['1', 'on', 'true'].includes(String(old[name])) : Boolean(fallback));
+  const variantRows = posted && old.variants ? Object.values(old.variants) : (p.variants || []).map((x) => ({
+    id: x.id, name: x.name, sku: x.sku, price: centsToInput(x.price_cents), compare_at: centsToInput(x.compare_at_cents), stock: x.stock_qty, weight_grams: x.weight_grams, is_active: x.is_active ? '1' : '',
+  }));
+  const err = (name) => (errors[name] ? `<p class="field-error">${errors[name]}</p>` : '');
+%>
+<p class="mb-2 text-sm"><a href="/admin/products" class="link">&larr; Products</a></p>
+<%- include('../partials/admin-head', { heading: product ? 'Edit product' : 'New product', actions: product ? [[`/p/${product.slug}`, 'View in store'], [`/admin/inventory/logs?product=${product.id}`, 'Stock history']] : [] }) %>
+
+<form action="<%= product ? `/admin/products/${product.id}` : '/admin/products' %>?_csrf=<%= encodeURIComponent(csrfToken) %>" method="post" enctype="multipart/form-data" class="grid gap-5 xl:grid-cols-[1fr_360px]" data-product-admin>
+  <div class="space-y-5">
+    <fieldset class="panel space-y-4">
+      <legend class="px-1 font-bold uppercase tracking-wide">Basics</legend>
+      <div><label class="label" for="name">Name <span class="text-brand-red-dark" aria-hidden="true">*</span></label><input id="name" name="name" value="<%= v('name', p.name) %>" maxlength="190" required class="input"><%- err('name') %></div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div><label class="label" for="sku">SKU <span class="text-brand-red-dark" aria-hidden="true">*</span></label><input id="sku" name="sku" value="<%= v('sku', p.sku) %>" maxlength="64" required class="input"><%- err('sku') %></div>
+        <div><label class="label" for="slug">URL slug</label><input id="slug" name="slug" value="<%= v('slug', p.slug) %>" maxlength="200" class="input"><p class="help">Leave blank to generate from the name.</p></div>
+        <div><label class="label" for="category_id">Category <span class="text-brand-red-dark" aria-hidden="true">*</span></label>
+          <select id="category_id" name="category_id" required class="input"><option value="">Choose&hellip;</option><% categories.forEach((c) => { %><option value="<%= c.id %>" <%= String(v('category_id', p.category_id)) === String(c.id) ? 'selected' : '' %>><%= c.label %></option><% }) %></select><%- err('category_id') %></div>
+        <div><label class="label" for="brand_id">Brand</label>
+          <select id="brand_id" name="brand_id" class="input"><option value="">No brand</option><% brands.forEach((b) => { %><option value="<%= b.id %>" <%= String(v('brand_id', p.brand_id)) === String(b.id) ? 'selected' : '' %>><%= b.name %></option><% }) %></select></div>
+      </div>
+      <div><label class="label" for="short_description">Short description</label><input id="short_description" name="short_description" value="<%= v('short_description', p.short_description) %>" maxlength="300" class="input"><p class="help">One line shown under the title and in search results.</p></div>
+      <%- include('../partials/rte', { name: 'description', label: 'Description', value: v('description', p.description) }) %>
+      <%- include('../partials/rte', { name: 'details', label: 'Ingredients & details tab', value: v('details', p.details) }) %>
+      <div><label class="label" for="tags">Tags</label><input id="tags" name="tags" value="<%= v('tags', (p.tags || []).join(', ')) %>" maxlength="1000" class="input"><p class="help">Comma separated. Tags are searchable, e.g. "eba, cassava, nigerian".</p></div>
+    </fieldset>
+
+    <fieldset class="panel space-y-4">
+      <legend class="px-1 font-bold uppercase tracking-wide">Price &amp; stock</legend>
+      <p class="alert-info" data-variant-note <%= variantRows.length ? '' : 'hidden' %>>This product has variants, so price, stock and weight are set on each variant below.</p>
+      <div class="grid gap-4 sm:grid-cols-4" data-simple-fields>
+        <div><label class="label" for="price">Price ($)</label><input id="price" name="price" value="<%= v('price', product && !variantRows.length ? centsToInput(p.price_cents) : '') %>" inputmode="decimal" placeholder="0.00" class="input"><%- err('price') %></div>
+        <div><label class="label" for="compare_at">Compare-at ($)</label><input id="compare_at" name="compare_at" value="<%= v('compare_at', product && !variantRows.length ? centsToInput(p.compare_at_cents) : '') %>" inputmode="decimal" class="input"><p class="help">Old price, shown struck through.</p><%- err('compare_at') %></div>
+        <div><label class="label" for="stock">Stock</label><input id="stock" name="stock" type="number" min="0" step="1" value="<%= v('stock', product && !variantRows.length ? p.stock_qty : 0) %>" class="input"><%- err('stock') %></div>
+        <div><label class="label" for="weight_grams">Weight (g)</label><input id="weight_grams" name="weight_grams" type="number" min="0" step="1" value="<%= v('weight_grams', product ? p.weight_grams : 0) %>" class="input"><p class="help">Used for shipping rates.</p></div>
+      </div>
+      <div class="max-w-[12rem]"><label class="label" for="low_stock_threshold">Low-stock alert at</label><input id="low_stock_threshold" name="low_stock_threshold" type="number" min="0" step="1" value="<%= v('low_stock_threshold', product ? p.low_stock_threshold : 5) %>" class="input"></div>
+    </fieldset>
+
+    <fieldset class="panel space-y-3">
+      <legend class="px-1 font-bold uppercase tracking-wide">Variants</legend>
+      <p class="text-sm text-neutral-800">Optional. Use variants for sizes and weights (food) or shade, length and colour (beauty). Each variant has its own SKU, price and stock.</p>
+      <div class="max-w-xs"><label class="label" for="variant_label">Option name</label><input id="variant_label" name="variant_label" value="<%= v('variant_label', p.variant_label) %>" maxlength="40" placeholder="Size, Shade, Length, Colour&hellip;" class="input"></div>
+      <div class="overflow-x-auto">
+        <table class="table" data-variants>
+          <thead><tr><th scope="col">Name</th><th scope="col">SKU</th><th scope="col">Price ($)</th><th scope="col">Compare ($)</th><th scope="col">Stock</th><th scope="col">Weight (g)</th><th scope="col">Active</th><th scope="col">Remove</th></tr></thead>
+          <tbody data-variant-rows>
+            <% variantRows.forEach((r, i) => { %>
+              <tr data-variant-row>
+                <td><input type="hidden" name="variants[<%= i %>][id]" value="<%= r.id || '' %>"><input name="variants[<%= i %>][name]" value="<%= r.name || '' %>" maxlength="120" required aria-label="Variant name" class="input min-w-[8rem]"></td>
+                <td><input name="variants[<%= i %>][sku]" value="<%= r.sku || '' %>" maxlength="64" required aria-label="Variant SKU" class="input min-w-[8rem]"></td>
+                <td><input name="variants[<%= i %>][price]" value="<%= r.price || '' %>" inputmode="decimal" required aria-label="Variant price" class="input w-24"></td>
+                <td><input name="variants[<%= i %>][compare_at]" value="<%= r.compare_at || '' %>" inputmode="decimal" aria-label="Variant compare-at price" class="input w-24"></td>
+                <td><input name="variants[<%= i %>][stock]" type="number" min="0" step="1" value="<%= r.stock === undefined ? 0 : r.stock %>" aria-label="Variant stock" class="input w-20"></td>
+                <td><input name="variants[<%= i %>][weight_grams]" type="number" min="0" step="1" value="<%= r.weight_grams === undefined ? 0 : r.weight_grams %>" aria-label="Variant weight in grams" class="input w-24"></td>
+                <td><input type="checkbox" name="variants[<%= i %>][is_active]" value="1" class="checkbox" aria-label="Variant active" <%= r.is_active ? 'checked' : '' %>></td>
+                <td><input type="checkbox" name="variants[<%= i %>][remove]" value="1" class="checkbox" aria-label="Remove this variant" <%= r.remove ? 'checked' : '' %>></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn-outline btn-sm" data-add-variant data-next-index="<%= variantRows.length %>">+ Add variant</button>
+      <%- err('variants') %>
+    </fieldset>
+
+    <fieldset class="panel space-y-3">
+      <legend class="px-1 font-bold uppercase tracking-wide">Images</legend>
+      <% if (product && product.images.length) { %>
+        <p class="text-sm text-neutral-800">Drag to reorder (or use the arrow buttons). The first image is the main one.</p>
+        <input type="hidden" name="image_order" value="<%= product.images.map((i) => i.id).join(',') %>" data-image-order>
+        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-4" data-image-list>
+          <% product.images.forEach((img) => { %>
+            <li class="rounded-lg border-2 border-neutral-300 bg-white p-2" draggable="true" data-image-id="<%= img.id %>">
+              <img src="<%= upload(img.thumb_path) %>" alt="<%= img.alt || '' %>" class="aspect-square w-full cursor-move rounded object-cover" draggable="false">
+              <label class="sr-only" for="alt-<%= img.id %>">Alt text</label>
+              <input id="alt-<%= img.id %>" name="image_alt[<%= img.id %>]" value="<%= img.alt || '' %>" maxlength="190" placeholder="Alt text" class="mt-2 block w-full rounded border border-neutral-400 px-2 py-1 text-xs">
+              <div class="mt-2 flex items-center justify-between gap-1">
+                <span class="flex gap-1"><button type="button" class="rounded border border-neutral-400 px-2 text-sm" data-image-move="-1" aria-label="Move image earlier">&larr;</button><button type="button" class="rounded border border-neutral-400 px-2 text-sm" data-image-move="1" aria-label="Move image later">&rarr;</button></span>
+                <label class="flex items-center gap-1 text-xs"><input type="checkbox" name="image_delete" value="<%= img.id %>" class="checkbox">Delete</label>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+      <div><label class="label" for="images">Upload images</label><input id="images" type="file" name="images" multiple accept="image/jpeg,image/png,image/webp,image/gif" class="input">
+        <p class="help">Up to 8 at a time, 5 MB each. <%= hasSharp ? 'Images are converted to WebP with thumbnails automatically.' : 'Image conversion is not available on this server, so images are stored as uploaded - resize them to about 1200 px before uploading.' %></p></div>
+    </fieldset>
+
+    <fieldset class="panel space-y-4">
+      <legend class="px-1 font-bold uppercase tracking-wide">Search engines</legend>
+      <div><label class="label" for="meta_title">SEO title</label><input id="meta_title" name="meta_title" value="<%= v('meta_title', p.meta_title) %>" maxlength="190" class="input"><p class="help">Optional. Defaults to the product name.</p></div>
+      <div><label class="label" for="meta_description">SEO description</label><textarea id="meta_description" name="meta_description" rows="2" maxlength="300" class="input"><%= v('meta_description', p.meta_description) %></textarea></div>
+    </fieldset>
+  </div>
+
+  <div class="space-y-5">
+    <fieldset class="panel space-y-2">
+      <legend class="px-1 font-bold uppercase tracking-wide">Visibility</legend>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" class="checkbox" <%= on('is_active', product ? p.is_active : true) ? 'checked' : '' %>>Visible in the store</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" value="1" class="checkbox" <%= on('is_featured', p.is_featured) ? 'checked' : '' %>>Featured</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_deal" value="1" class="checkbox" <%= on('is_deal', p.is_deal) ? 'checked' : '' %>>Deal of the week</label>
+    </fieldset>
+    <fieldset class="panel space-y-2">
+      <legend class="px-1 font-bold uppercase tracking-wide">Tax &amp; fulfilment</legend>
+      <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="is_taxable" value="1" class="checkbox mt-0.5" <%= on('is_taxable', product ? p.is_taxable : true) ? 'checked' : '' %>><span><strong>Taxable</strong> - charge <%= settings.tax_label %> <%= settings.tax_rate %>%. Untick for zero-rated basic groceries.</span></label>
+      <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="is_perishable" value="1" class="checkbox mt-0.5" <%= on('is_perishable', p.is_perishable) ? 'checked' : '' %>><span><strong>Perishable</strong> - cannot be shipped.</span></label>
+      <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="is_frozen" value="1" class="checkbox mt-0.5" <%= on('is_frozen', p.is_frozen) ? 'checked' : '' %>><span><strong>Frozen</strong> - cannot be shipped.</span></label>
+      <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="pickup_only" value="1" class="checkbox mt-0.5" <%= on('pickup_only', p.pickup_only) ? 'checked' : '' %>><span><strong>Pickup only</strong> - no delivery or shipping.</span></label>
+    </fieldset>
+    <div class="panel space-y-2">
+      <button type="submit" class="btn-primary btn-block">Save product</button>
+      <a href="/admin/products" class="btn-outline btn-block">Cancel</a>
+    </div>
+  </div>
+</form>
+
+<% if (product) { %>
+  <form action="/admin/products/<%= product.id %>/delete" method="post" class="mt-6" data-confirm="Delete &quot;<%= product.name %>&quot; permanently? Past orders keep their details.">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button type="submit" class="text-sm font-semibold text-brand-red-dark underline">Delete this product</button>
+    <span class="text-sm text-neutral-700"> - to hide it instead, untick "Visible in the store".</span>
+  </form>
+<% } %>
+
+<template data-variant-template>
+  <tr data-variant-row>
+    <td><input type="hidden" name="variants[__i__][id]" value=""><input name="variants[__i__][name]" maxlength="120" required aria-label="Variant name" class="input min-w-[8rem]"></td>
+    <td><input name="variants[__i__][sku]" maxlength="64" required aria-label="Variant SKU" class="input min-w-[8rem]"></td>
+    <td><input name="variants[__i__][price]" inputmode="decimal" required aria-label="Variant price" class="input w-24"></td>
+    <td><input name="variants[__i__][compare_at]" inputmode="decimal" aria-label="Variant compare-at price" class="input w-24"></td>
+    <td><input name="variants[__i__][stock]" type="number" min="0" step="1" value="0" aria-label="Variant stock" class="input w-20"></td>
+    <td><input name="variants[__i__][weight_grams]" type="number" min="0" step="1" value="0" aria-label="Variant weight in grams" class="input w-24"></td>
+    <td><input type="checkbox" name="variants[__i__][is_active]" value="1" class="checkbox" aria-label="Variant active" checked></td>
+    <td><button type="button" class="text-sm font-semibold text-brand-red-dark underline" data-remove-row>Remove</button></td>
+  </tr>
+</template>

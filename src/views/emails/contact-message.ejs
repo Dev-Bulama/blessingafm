@@ -1,0 +1,5 @@
+<h1 style="font-size:22px;margin:0 0 12px;">New message from the website</h1>
+<p style="margin:0 0 12px;"><strong><%= message.name %></strong><br><%= message.email %><% if (message.phone) { %> &middot; <%= message.phone %><% } %></p>
+<% if (message.subject) { %><p style="margin:0 0 12px;"><strong>Subject:</strong> <%= message.subject %></p><% } %>
+<p style="margin:0 0 12px;padding:12px 14px;background:#f3f3f3;border-left:4px solid #D81E1E;white-space:pre-line;"><%= message.message %></p>
+<p style="margin:0;font-size:13px;color:#555555;">Reply to this email to answer the customer directly. The message is also saved under Admin &gt; Messages.</p>
