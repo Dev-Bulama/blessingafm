@@ -13,7 +13,7 @@
   const groups = [
     { label: 'Store', items: [['/admin', 'Dashboard'], ['/admin/orders', 'Orders'], ['/admin/products', 'Products'], ['/admin/inventory', 'Inventory'], ['/admin/r/categories', 'Categories'], ['/admin/r/brands', 'Brands']] },
     isAdmin ? { label: 'Customers', items: [['/admin/customers', 'Customers'], ['/admin/reviews', 'Reviews'], ['/admin/messages', 'Messages'], ['/admin/subscribers', 'Subscribers']] } : null,
-    isAdmin ? { label: 'Selling', items: [['/admin/r/coupons', 'Coupons'], ['/admin/r/delivery-zones', 'Delivery zones'], ['/admin/r/shipping-rates', 'Shipping rates'], ['/admin/r/pickup-slots', 'Pickup slots']] } : null,
+    isAdmin ? { label: 'Selling', items: [['/admin/reports', 'Sales & tax report'], ['/admin/r/coupons', 'Coupons'], ['/admin/r/delivery-zones', 'Delivery zones'], ['/admin/r/shipping-rates', 'Shipping rates'], ['/admin/r/pickup-slots', 'Pickup slots']] } : null,
     isAdmin ? { label: 'Content', items: [['/admin/r/banners', 'Hero banners'], ['/admin/r/pages', 'Pages'], ['/admin/r/faqs', 'FAQs']] } : null,
     isAdmin ? { label: 'System', items: [['/admin/settings', 'Settings'], ['/admin/staff', 'Staff'], ['/admin/audit', 'Audit log']] } : null,
   ].filter(Boolean);

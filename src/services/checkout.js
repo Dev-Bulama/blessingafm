@@ -145,9 +145,11 @@ async function pickupOptions(settings, trx = db) {
   const cutoff = dates.storeTime(new Date(Date.now() + leadMinutes * 60000));
   const cutoffRollsOver = dates.storeDate(new Date(Date.now() + leadMinutes * 60000)) !== today;
 
+  const closed = new Set(String(settings.pickup_closed_dates || '').split(/[\s,;]+/).filter(Boolean));
   const days = [];
   for (let i = 0; i < daysAhead; i += 1) {
     const date = dates.addDays(today, i);
+    if (closed.has(date)) continue; // shop shut that day (holiday etc.)
     const dow = dates.dayOfWeek(date);
     const daySlots = slots
       .filter((s) => s.day_of_week === dow)

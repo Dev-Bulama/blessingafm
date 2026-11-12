@@ -1,5 +1,6 @@
 'use strict';
 const path = require('path');
+const crypto = require('crypto');
 const fs = require('fs');
 const express = require('express');
 const helmet = require('helmet');
@@ -15,6 +16,7 @@ const flash = require('./middleware/flash');
 const { loadUser } = require('./middleware/auth');
 const { locals } = require('./middleware/locals');
 const { notFound, errorHandler } = require('./middleware/errors');
+const Embed = require('./lib/embed');
 
 fs.mkdirSync(env.uploadDir, { recursive: true });
 
@@ -30,6 +32,8 @@ if (env.isProd) app.set('view cache', true);
 // Automated tests point PAYPAL_API_BASE at a local mock; allow its redirect too. Never set in production.
 const paypalTestOrigin = process.env.PAYPAL_API_BASE && !env.isProd ? [new URL(process.env.PAYPAL_API_BASE).origin] : [];
 
+const FORM_ACTION = ["'self'", 'https://checkout.stripe.com', 'https://www.paypal.com', 'https://www.sandbox.paypal.com', ...paypalTestOrigin];
+
 // ---------- Security headers ----------
 app.use(helmet({
   contentSecurityPolicy: {
@@ -42,7 +46,7 @@ app.use(helmet({
       fontSrc: ["'self'"],
       connectSrc: ["'self'"],
       frameSrc: ['https://www.google.com'], // store map embed
-      formAction: ["'self'", 'https://checkout.stripe.com', 'https://www.paypal.com', 'https://www.sandbox.paypal.com', ...paypalTestOrigin], // redirects to hosted Stripe Checkout / PayPal
+      formAction: FORM_ACTION, // redirects to hosted Stripe Checkout / PayPal
       frameAncestors: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
@@ -96,6 +100,19 @@ app.use(loadUser);
 app.use(locals);
 app.use(expressLayouts);
 app.use(csrfProtection);
+
+// Chat widgets / analytics added by an admin in Settings. Every script tag carries a per-request
+// nonce. Only pages that actually load a widget get the wider policy; admin, account, checkout and
+// order pages always keep the strict one set by helmet above.
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  const scripts = Embed.scriptsFor(res.locals.settings, req.path);
+  res.locals.embedHtml = scripts.length ? Embed.renderEmbed(scripts, res.locals.cspNonce) : '';
+  if (scripts.length && req.method === 'GET') {
+    res.setHeader('Content-Security-Policy', Embed.widgetCsp(res.locals.cspNonce, { formAction: FORM_ACTION, upgradeInsecure: env.isProd }));
+  }
+  next();
+});
 
 // ---------- Application routes ----------
 app.use('/admin', require('./routes/admin'));

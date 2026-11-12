@@ -96,6 +96,32 @@
   </fieldset>
 
   <fieldset class="panel space-y-4">
+    <legend class="px-1 font-bold uppercase tracking-wide">Pause online ordering</legend>
+    <%- check('orders_paused', 'Stop taking new online orders for now (holidays, stock-take, emergencies)') %>
+    <%- text('orders_paused_message', 'Message shown to customers', { attrs: 'maxlength="300" placeholder="We are closed for the holidays and will take orders again on January 2."' }) %>
+    <p class="help">Customers can still browse and fill their carts. Existing orders are not affected.</p>
+    <div><label class="label" for="s-pickup_closed_dates">Days with no pickup</label><textarea id="s-pickup_closed_dates" name="pickup_closed_dates" rows="3" class="input <%= errors.pickup_closed_dates ? 'input-error' : '' %>" placeholder="2026-12-25&#10;2027-01-01"><%= v('pickup_closed_dates') %></textarea>
+      <p class="help">One date per line as YYYY-MM-DD. Customers cannot choose a pickup slot on these days (public holidays, days the shop is shut).</p><% if (errors.pickup_closed_dates) { %><p class="field-error"><%= errors.pickup_closed_dates %></p><% } %></div>
+  </fieldset>
+
+  <fieldset class="panel space-y-4" id="scripts">
+    <legend class="px-1 font-bold uppercase tracking-wide">Chat widget &amp; tracking scripts</legend>
+    <%- check('custom_scripts_enabled', 'Load the code below on the storefront') %>
+    <div><label class="label" for="s-custom_scripts_code">Embed code</label>
+      <textarea id="s-custom_scripts_code" name="custom_scripts_code" rows="8" maxlength="20000" spellcheck="false" class="input font-mono text-sm <%= errors.custom_scripts_code ? 'input-error' : '' %>" placeholder='&lt;script src="https://your-chat-provider.example/widget.js" data-id="YOUR-ID" async&gt;&lt;/script&gt;'><%= v('custom_scripts_code') %></textarea>
+      <% if (errors.custom_scripts_code) { %><p class="field-error"><%= errors.custom_scripts_code %></p><% } %></div>
+    <div class="prose-store text-sm">
+      <ul>
+        <li>Paste the "add to your website" code exactly as your provider gives it: live chat and chatbots (SkillyChat, Tawk.to, Crisp, Tidio, Chatwoot, WhatsApp widgets and similar), Google Analytics, Meta Pixel and other tags. You can paste several one after another.</li>
+        <li>Only the <code>&lt;script&gt;</code> tags are used, and their addresses must start with <code>https://</code>. Other HTML in the snippet is ignored.</li>
+        <li>The code loads on the shop pages. It is <strong>never</strong> loaded on sign-in and account pages, checkout, order pages or this admin panel.</li>
+        <li>A small cookie notice appears for visitors while a script is active.</li>
+        <li><strong>Only paste code from a provider you trust.</strong> It runs inside your store and can see what shoppers do on those pages. Every change is recorded in the audit log.</li>
+      </ul>
+    </div>
+  </fieldset>
+
+  <fieldset class="panel space-y-4">
     <legend class="px-1 font-bold uppercase tracking-wide">Alerts for the store</legend>
     <%- check('notify_low_stock', 'Email me as soon as an order takes an item down to its low-stock level') %>
     <%- check('notify_daily_summary', 'Email me a daily summary each morning: orders to prepare, pickups today, unpaid e-Transfers, low stock') %>

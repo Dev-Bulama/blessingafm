@@ -1,0 +1,52 @@
+<%- include('../partials/admin-head', { heading: 'Sales & tax report', actions: [[`/admin/orders/export.csv?payment=paid&from=${from}&to=${to}`, 'Export orders placed in this period (CSV)']] }) %>
+<form method="get" class="panel mb-4 flex flex-wrap items-end gap-3 no-print" aria-label="Report period">
+  <div><label class="label" for="from">From</label><input id="from" type="date" name="from" value="<%= from %>" class="input"></div>
+  <div><label class="label" for="to">To</label><input id="to" type="date" name="to" value="<%= to %>" class="input"></div>
+  <button type="submit" class="btn-dark btn-sm">Show</button>
+  <span class="flex flex-wrap gap-2"><% presets.forEach(([label, f, t2]) => { %><a href="/admin/reports?from=<%= f %>&to=<%= t2 %>" class="btn-outline btn-sm"><%= label %></a><% }) %></span>
+</form>
+<p class="mb-4 text-sm text-neutral-800">Paid orders by payment date, <strong><%= dates.formatYmd(from, true) %></strong> to <strong><%= dates.formatYmd(to, true) %></strong> (store time). Refunded orders are left out of the totals.</p>
+
+<section aria-label="Totals" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="stat"><p class="text-xs font-bold uppercase tracking-widest text-neutral-600">Total received</p><p class="font-display text-4xl tracking-wide"><%= money(t.total) %></p><p class="text-sm text-neutral-700"><%= t.orders %> paid order<%= t.orders === 1 ? '' : 's' %></p></div>
+  <div class="stat"><p class="text-xs font-bold uppercase tracking-widest text-neutral-600"><%= settings.tax_label || 'HST' %> collected</p><p class="font-display text-4xl tracking-wide"><%= money(t.tax) %></p><p class="text-sm text-neutral-700">to report on your return</p></div>
+  <div class="stat"><p class="text-xs font-bold uppercase tracking-widest text-neutral-600">Sales before tax</p><p class="font-display text-4xl tracking-wide"><%= money(t.total - t.tax) %></p><p class="text-sm text-neutral-700">goods and delivery fees</p></div>
+  <div class="stat"><p class="text-xs font-bold uppercase tracking-widest text-neutral-600">Average order</p><p class="font-display text-4xl tracking-wide"><%= money(average) %></p><p class="text-sm text-neutral-700"><%= cancelled %> cancelled, <%= refunded.orders %> refunded (<%= money(refunded.total) %>)</p></div>
+</section>
+
+<div class="mt-5 grid gap-5 xl:grid-cols-2">
+  <section class="panel" aria-labelledby="tax-title">
+    <h2 id="tax-title" class="font-bold uppercase tracking-wide">Tax summary</h2>
+    <table class="table mt-3">
+      <thead><tr><th scope="col">Line</th><th scope="col" class="text-right">Sales</th><th scope="col" class="text-right"><%= settings.tax_label || 'HST' %></th></tr></thead>
+      <tbody>
+        <tr><td>Taxable goods (after discounts)</td><td class="text-right"><%= money(taxableNet) %></td><td class="text-right"><%= money(itemsTax) %></td></tr>
+        <tr><td>Zero-rated goods (basic groceries)</td><td class="text-right"><%= money(zeroRatedNet) %></td><td class="text-right"><%= money(0) %></td></tr>
+        <tr><td>Delivery and shipping fees</td><td class="text-right"><%= money(t.shipping) %></td><td class="text-right"><%= money(shippingTax) %></td></tr>
+        <tr class="font-bold"><td>Total</td><td class="text-right"><%= money(t.total - t.tax) %></td><td class="text-right"><%= money(t.tax) %></td></tr>
+      </tbody>
+    </table>
+    <p class="mt-3 text-xs text-neutral-700">Goods before discounts: <%= money(t.subtotal) %>. Discounts given: <%= money(t.discount) %>. Give this page to your accountant; it is a summary of the store's records, not a filed return.</p>
+  </section>
+  <div class="space-y-5">
+    <section class="panel" aria-labelledby="pay-title">
+      <h2 id="pay-title" class="font-bold uppercase tracking-wide">By payment method</h2>
+      <% if (!byPayment.length) { %><p class="mt-2 text-sm text-neutral-700">No paid orders in this period.</p><% } else { %>
+      <table class="table mt-3"><thead><tr><th scope="col">Method</th><th scope="col" class="text-right">Orders</th><th scope="col" class="text-right">Received</th></tr></thead>
+        <tbody><% byPayment.forEach((r) => { %><tr><td><%= r.label %></td><td class="text-right"><%= r.orders %></td><td class="text-right"><%= money(r.total) %></td></tr><% }) %></tbody></table><% } %>
+    </section>
+    <section class="panel" aria-labelledby="ful-title">
+      <h2 id="ful-title" class="font-bold uppercase tracking-wide">By fulfilment</h2>
+      <% if (!byFulfilment.length) { %><p class="mt-2 text-sm text-neutral-700">No paid orders in this period.</p><% } else { %>
+      <table class="table mt-3"><thead><tr><th scope="col">Method</th><th scope="col" class="text-right">Orders</th><th scope="col" class="text-right">Fees charged</th><th scope="col" class="text-right">Received</th></tr></thead>
+        <tbody><% byFulfilment.forEach((r) => { %><tr><td><%= r.label %></td><td class="text-right"><%= r.orders %></td><td class="text-right"><%= money(r.fees) %></td><td class="text-right"><%= money(r.total) %></td></tr><% }) %></tbody></table><% } %>
+    </section>
+  </div>
+</div>
+
+<section class="panel mt-5" aria-labelledby="top-title">
+  <h2 id="top-title" class="font-bold uppercase tracking-wide">Best-selling products</h2>
+  <% if (!topProducts.length) { %><p class="mt-2 text-sm text-neutral-700">No sales in this period.</p><% } else { %>
+  <div class="overflow-x-auto"><table class="table mt-3"><thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" class="text-right">Units</th><th scope="col" class="text-right">Sales before tax</th></tr></thead>
+    <tbody><% topProducts.forEach((p) => { %><tr><td><%= p.name %></td><td><%= p.sku %></td><td class="text-right"><%= p.qty %></td><td class="text-right"><%= money(p.net) %></td></tr><% }) %></tbody></table></div><% } %>
+</section>

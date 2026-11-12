@@ -199,6 +199,12 @@
   <% } %>
 </div>
 
+<span hidden data-recent-current data-url="/p/<%= p.slug %>" data-name="<%= p.name %>" data-price="<%= p.has_variants ? `From ${money(p.price_cents)}` : money(p.price_cents) %>" data-image="<%= upload(p.thumb) %>"></span>
+<section class="container-site pb-10" aria-labelledby="recent-title" data-recent hidden>
+  <h2 id="recent-title" class="section-title">Recently viewed</h2>
+  <ul class="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4" data-recent-list></ul>
+</section>
+
 <%# Full-size image dialog %>
 <dialog class="max-h-[95vh] max-w-[95vw] rounded-xl border-4 border-brand-black p-0 backdrop:bg-black/80" data-lightbox aria-label="Full size product image">
   <form method="dialog" class="absolute right-2 top-2"><button class="btn-dark btn-sm" aria-label="Close image">Close</button></form>

@@ -77,6 +77,7 @@ async function show(req, res) {
     req.flash('error', 'Some items in your cart need attention before you can check out.');
     return res.redirect('/cart');
   }
+  if (res.locals.settings.orders_paused === '1') return res.redirect('/cart');
   const { settings, old } = res.locals;
   const options = Checkout.options(settings);
   const [pickupDays, addresses] = await Promise.all([

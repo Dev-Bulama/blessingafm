@@ -8,6 +8,7 @@ const Image = require('../../services/image');
 const Mail = require('../../services/mail');
 const Csv = require('../../services/csv');
 const { getStripe } = require('../../config/stripe');
+const Embed = require('../../lib/embed');
 const { z, email: emailField } = require('../../middleware/validation');
 
 const PER_PAGE = 50;
@@ -138,6 +139,18 @@ const settingsSchema = z.object({
   remind_review: flag,
   review_request_days: z.coerce.number({ error: 'Enter a number of days' }).int().min(1).max(60).transform(String),
   back_in_stock_enabled: flag,
+  custom_scripts_enabled: flag,
+  custom_scripts_code: z.any().optional().transform((v) => String(v === undefined || v === null ? '' : v).trim()),
+  orders_paused: flag,
+  orders_paused_message: str(300),
+  pickup_closed_dates: z.any().optional().transform((v) => [...new Set(String(v || '').split(/[\s,;]+/).filter(Boolean))].sort().join('\n'))
+    .refine((v) => v === '' || v.split('\n').every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(`${d}T12:00:00Z`))), 'Enter closed dates as YYYY-MM-DD, one per line'),
+}).superRefine((d, ctx) => {
+  const { scripts, problems } = Embed.parseEmbed(d.custom_scripts_code);
+  if (problems.length) ctx.addIssue({ code: 'custom', path: ['custom_scripts_code'], message: problems[0] });
+  else if (d.custom_scripts_enabled === '1' && !scripts.length) {
+    ctx.addIssue({ code: 'custom', path: ['custom_scripts_code'], message: 'Paste the embed code from your chat or analytics provider. It must contain a <script> tag.' });
+  }
 });
 
 /** GET /admin/settings */
@@ -172,6 +185,9 @@ async function saveSettings(req, res) {
   }
   await Setting.setMany(values);
   const changed = Object.keys(values).filter((k) => String(current[k] ?? '') !== String(values[k]));
+  if (changed.includes('custom_scripts_code') || changed.includes('custom_scripts_enabled')) {
+    await Audit.log(req, 'custom_scripts_change', 'settings', null, { enabled: values.custom_scripts_enabled === '1', scripts: Embed.parseEmbed(values.custom_scripts_code).scripts.map((x) => (x.attrs.find((a) => a[0] === 'src') || [null, 'inline script'])[1]) });
+  }
   await Audit.log(req, 'settings_update', 'settings', null, { changed });
   req.flash('success', 'Settings saved.');
   return res.redirect('/admin/settings');

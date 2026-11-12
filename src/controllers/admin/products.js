@@ -152,6 +152,7 @@ async function save(req, res, next) {
     is_featured: d.is_featured, is_deal: d.is_deal, is_active: d.is_active,
     meta_title: d.meta_title || null,
     meta_description: d.meta_description || null,
+    updated_at: new Date(),
   };
   if (!variants.length) Object.assign(row, { price_cents: d.price, compare_at_cents: d.compare_at, weight_grams: d.weight_grams });
   else if (!existing) Object.assign(row, { price_cents: variants[0].price, stock_qty: 0 });

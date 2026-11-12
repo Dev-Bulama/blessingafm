@@ -182,7 +182,7 @@ async function save(req, res, next) {
   }
 
   let savedId = id;
-  if (id) await db(resource.table).where({ id }).update(data);
+  if (id) await db(resource.table).where({ id }).update({ ...data, updated_at: new Date() });
   else [savedId] = await db(resource.table).insert(data);
   if (oldImage && !oldImage.startsWith('seed/')) await Image.removeFile(oldImage);
   if (resource.afterChange) await resource.afterChange();

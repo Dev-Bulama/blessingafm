@@ -61,6 +61,8 @@ router.post('/r/:resource/:id/delete', asyncHandler(resource.remove));
 // ---------- Admin only ----------
 router.use(requireAdmin);
 
+router.get('/reports', asyncHandler(require('../controllers/admin/reports').index));
+
 router.get('/customers', asyncHandler(customers.list));
 router.get('/customers/:id', asyncHandler(customers.detail));
 router.post('/customers/:id/toggle', asyncHandler(customers.toggle));

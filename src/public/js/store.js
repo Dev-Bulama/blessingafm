@@ -445,6 +445,57 @@
     });
   });
 
+  /* ---------- Cookie notice (only present when third-party scripts are enabled) ---------- */
+  var cookieNotice = $('[data-cookie-notice]');
+  if (cookieNotice) {
+    var seen = false;
+    try { seen = localStorage.getItem('bam-cookie-ok') === '1'; } catch (err) { /* storage unavailable */ }
+    cookieNotice.hidden = seen;
+    $('[data-cookie-accept]', cookieNotice).addEventListener('click', function () {
+      cookieNotice.hidden = true;
+      try { localStorage.setItem('bam-cookie-ok', '1'); } catch (err) { /* storage unavailable */ }
+    });
+  }
+
+  /* ---------- Recently viewed products (kept in this browser only, never sent to the server) ---------- */
+  (function () {
+    var KEY = 'bam-recent';
+    var read = function () { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (err) { return []; } };
+    var current = $('[data-recent-current]');
+    var items = read().filter(function (i) { return i && typeof i.url === 'string' && /^\/p\/[a-z0-9-]+$/.test(i.url); });
+    if (current) {
+      var me = {
+        url: current.getAttribute('data-url'), name: current.getAttribute('data-name'),
+        price: current.getAttribute('data-price'), image: current.getAttribute('data-image'),
+      };
+      items = items.filter(function (i) { return i.url !== me.url; });
+      try { localStorage.setItem(KEY, JSON.stringify([me].concat(items).slice(0, 9))); } catch (err) { /* storage unavailable */ }
+    }
+    var section = $('[data-recent]');
+    if (!section || !items.length) return;
+    var list = $('[data-recent-list]', section);
+    items.slice(0, 4).forEach(function (i) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = i.url;
+      a.className = 'card group block h-full overflow-hidden no-underline';
+      var img = document.createElement('img');
+      img.src = /^\/(uploads|assets)\//.test(i.image || '') ? i.image : '/assets/img/placeholder.svg';
+      img.alt = ''; img.loading = 'lazy'; img.width = 300; img.height = 300; img.className = 'aspect-square w-full object-cover';
+      var body = document.createElement('span');
+      body.className = 'block p-3';
+      var name = document.createElement('span');
+      name.className = 'block text-sm font-bold leading-snug group-hover:underline';
+      name.textContent = i.name || '';
+      var price = document.createElement('span');
+      price.className = 'price-tag mt-2 text-lg';
+      price.textContent = i.price || '';
+      body.appendChild(name); body.appendChild(price);
+      a.appendChild(img); a.appendChild(body); li.appendChild(a); list.appendChild(li);
+    });
+    section.hidden = false;
+  })();
+
   /* ---------- Listing filters: collapsed by default on small screens ---------- */
   var filterDetails = $('[data-filter-details]');
   if (filterDetails && window.matchMedia('(max-width: 1023px)').matches && filterDetails.getAttribute('data-active') === '0') {

@@ -79,7 +79,10 @@
           <% } %>
         </div>
 
-        <% if (cart.hasProblems) { %>
+        <% if (settings.orders_paused === '1') { %>
+          <p class="alert-info mt-5" role="status"><%= settings.orders_paused_message || 'We are not taking online orders right now. Please check back soon.' %></p>
+          <button type="button" class="btn-primary btn-block mt-3" disabled>Checkout</button>
+        <% } else if (cart.hasProblems) { %>
           <button type="button" class="btn-primary btn-block mt-5" disabled>Checkout</button>
         <% } else { %>
           <a href="/checkout" class="btn-primary btn-block mt-5 text-base shadow-hard-sm">Checkout</a>
@@ -89,3 +92,8 @@
     </div>
   <% } %>
 </div>
+
+<section class="container-site pb-10" aria-labelledby="recent-title" data-recent hidden>
+  <h2 id="recent-title" class="section-title">Recently viewed</h2>
+  <ul class="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4" data-recent-list></ul>
+</section>

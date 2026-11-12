@@ -90,7 +90,7 @@ module.exports = [
 <h2>Who we share it with</h2>
 <p>We do not sell your personal information. We share it only with service providers who need it to do their work for us: our payment processors (Stripe and PayPal), our website and email hosting provider, and delivery or courier partners for orders you ask us to deliver or ship. We may also disclose information where the law requires it.</p>
 <h2>Cookies</h2>
-<p>This site uses one essential cookie to maintain your session (sign-in and cart). We do not use advertising cookies.</p>
+<p>This site uses essential cookies to maintain your session (sign-in and cart) and to protect forms. If we turn on a live chat or visitor statistics tool, that provider may set its own cookies on the shop pages; a notice is shown when such a tool is active. These tools are never loaded on sign-in, account or checkout pages.</p>
 <h2>How long we keep it</h2>
 <p>We keep order records for as long as required for tax and accounting purposes, and account information until you ask us to delete your account. Abandoned guest carts and expired sessions are deleted automatically.</p>
 <h2>Your choices</h2>

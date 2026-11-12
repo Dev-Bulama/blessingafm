@@ -51,6 +51,11 @@ const DEFAULTS = {
   review_request_days: '5',
   back_in_stock_enabled: '1',
   last_daily_summary_date: '',
+  custom_scripts_enabled: '0',
+  custom_scripts_code: '',
+  orders_paused: '0',
+  orders_paused_message: '',
+  pickup_closed_dates: '',
 };
 
 exports.seed = async function seed(knex) {

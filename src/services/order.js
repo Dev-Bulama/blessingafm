@@ -32,6 +32,9 @@ const itemLabel = (i) => (i.variant_name ? `${i.name} (${i.variant_name})` : i.n
 async function placeOrder({ req, input, settings }) {
   const cartId = await Cart.findCartId(req);
   if (!cartId) throw new CheckoutError('Your cart is empty.');
+  if (Setting.isOn(settings, 'orders_paused')) {
+    throw new CheckoutError(settings.orders_paused_message || 'We are not taking online orders right now. Please check back soon.');
+  }
   const opts = Checkout.options(settings);
   if (!opts.fulfilment[input.fulfilment]) throw new CheckoutError('That fulfilment method is not available right now.');
   if (!Checkout.paymentAllowed(input.payment_method, input.fulfilment, opts)) {

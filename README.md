@@ -41,6 +41,15 @@ customer emails, invoices and packing slips, customers, coupons, delivery zones,
 banners, pages (rich text), FAQs, reviews, newsletter subscribers, contact messages, settings, staff roles, audit log,
 orders CSV export.
 
+**Chat widgets and tracking scripts** - Admin -> Settings -> "Chat widget & tracking scripts": paste the embed code
+from any provider (SkillyChat, Tawk.to, Crisp, Tidio, Google Analytics, Meta Pixel...). Only the `<script>` tags are
+used, addresses must be `https://`, each tag gets a per-request CSP nonce, and the code is never loaded on sign-in,
+account, checkout, order or admin pages. A cookie notice appears while a script is active.
+
+**Also in Settings** - pause online ordering with a message (holidays, stock-take), and list days with no pickup.
+**Sales & tax report** (`/admin/reports`) - totals for any date range with HST collected, split into taxable goods,
+zero-rated goods and delivery fees, plus payment method, fulfilment and best sellers.
+
 **Alerts and reminders** (all switchable in Admin -> Settings):
 
 | Who | Email | When |
@@ -93,7 +102,7 @@ Open <http://localhost:3000>. Sign in at `/account/login` with the admin email a
 | `npm run dev:css` | Rebuild the CSS on every change while developing |
 | `npm run migrate` | Apply database migrations |
 | `npm run seed` | Load default settings, the admin user and sample data (safe to re-run) |
-| `npm test` | Unit tests for price, tax, coupon, shipping, alert and PayPal amount maths |
+| `npm test` | Unit tests for price, tax, coupon, shipping, alert, PayPal amount and embed-code handling |
 
 Only re-run `npm run build` when you change templates or `src/styles/app.css`, and commit the result.
 
@@ -258,6 +267,8 @@ otherwise run `npm run migrate` over SSH.
       each product with your accountant.
 - [ ] Review delivery zones, fees, shipping rates and pickup slots.
 - [ ] Read through the About, Shipping, Returns, Privacy and Terms pages and adjust them to the store's real policies.
+- [ ] If you use live chat or analytics, paste the provider's code under Settings -> Chat widget & tracking
+      scripts, open the home page and confirm the widget appears. Update the privacy page to name the provider.
 - [ ] Send a test email from Settings.
 - [ ] Test order: **pickup + pay in store**. Move it through Processing -> Ready for pickup -> Completed.
 - [ ] Test order: **local delivery + Interac e-Transfer**. Mark it Paid in admin.
@@ -348,7 +359,9 @@ InnoDB, utf8mb4, foreign keys throughout, money as integer cents.
 - Passwords hashed with bcrypt (cost 12). Session cookies are `httpOnly`, `secure`, `sameSite=lax`, stored in MySQL,
   and the session id is regenerated on login.
 - CSRF protection on every state-changing request (signed double-submit cookie).
-- Helmet with a strict Content-Security-Policy: no inline scripts or styles, no third-party scripts.
+- Helmet with a strict Content-Security-Policy: no inline scripts or styles, no third-party scripts. If an admin
+  installs a chat or analytics script, only the shop pages that load it get a wider policy (HTTPS resources,
+  nonce-protected scripts); sign-in, account, checkout, order and admin pages keep the strict one.
 - Rate limits on login, registration, password reset, contact, checkout, newsletter, reviews and search.
 - All input validated with zod; all queries parameterised through Knex; all template output escaped. Rich text from
   the admin editor is sanitised on the server.
@@ -396,4 +409,9 @@ InnoDB, utf8mb4, foreign keys throughout, money as integer cents.
     number of hours in Settings.
 17. **Low-stock alerts** are sent once, when an order takes an item across its threshold. The daily summary lists
     everything that is still low.
-18. **Map:** the home and contact pages embed a Google Maps iframe for the store address, which needs no API key.
+18. **Custom scripts** are limited to `<script>` tags. Providers whose snippet also needs a placeholder element in
+    the page (rare for chat tools) are not supported. The pasted code is trusted: it runs with full access to the
+    shop pages it is loaded on, which is why it is admin-only, audited and kept off sensitive pages.
+19. **Recently viewed products** are stored only in the visitor's browser and are never sent to the server.
+20. **Sales & tax report** counts paid orders by payment date in store time and leaves refunded orders out.
+21. **Map:** the home and contact pages embed a Google Maps iframe for the store address, which needs no API key.
