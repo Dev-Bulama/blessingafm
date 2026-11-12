@@ -18,7 +18,12 @@ const { locals } = require('./middleware/locals');
 const { notFound, errorHandler } = require('./middleware/errors');
 const Embed = require('./lib/embed');
 
-fs.mkdirSync(env.uploadDir, { recursive: true });
+try {
+  fs.mkdirSync(env.uploadDir, { recursive: true });
+} catch (err) {
+  // The store still runs; image uploads will report an error until UPLOAD_DIR is fixed.
+  logger.error(`UPLOAD_DIR "${env.uploadDir}" cannot be created`, err);
+}
 
 const app = express();
 app.disable('x-powered-by');
@@ -86,7 +91,7 @@ app.use('/uploads', express.static(env.uploadDir, {
 app.get('/favicon.ico', (req, res) => res.redirect(301, '/assets/img/favicon.svg'));
 
 // ---------- Routes that must not use sessions, CSRF or the JSON/urlencoded parsers ----------
-app.get('/healthz', (req, res) => res.type('text').send('ok'));
+app.get('/healthz', (req, res) => res.type('text').send('ok')); // server.js answers "not ready" until start-up has finished
 app.use('/webhooks', require('./routes/webhooks')); // needs the raw request body
 app.use('/cron', require('./routes/cron'));
 app.use(require('./routes/seo'));

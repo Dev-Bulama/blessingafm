@@ -253,6 +253,20 @@ tar czf ~/backups/uploads-$(date +%F).tar.gz -C "$(dirname "$UPLOAD_DIR")" "$(ba
 Take a backup before every update and keep a copy off the server at least once a month. To restore, import the
 `.sql.gz` in phpMyAdmin and put the uploads folder back.
 
+### If the site shows an error after deploying
+
+- **"We will be open shortly"** with a note *For the site owner*: the app is running but setup failed. The note says
+  which setting is wrong (database password, database name, admin password, missing `SESSION_SECRET`, empty
+  database). Fix that environment variable and redeploy. The page retries every 20 seconds by itself.
+- **hPanel's own "503 Service Unavailable"** page: the app did not start at all. Check, in this order:
+  1. Node.js version is 20 or newer and the entry file is `server.js`.
+  2. The install step finished (look at the deployment log for `npm install` errors).
+  3. `PORT` is not set by hand. Remove it so hPanel can assign the port.
+  4. The app's runtime log in hPanel for a line starting with `Startup problem` or an error message.
+- **Site loads but images are missing:** `UPLOAD_DIR` changed after seeding. Set `AUTO_SEED=1` once more and
+  redeploy to recreate the sample artwork, then set it back to `0`.
+- `https://<domain>/healthz` answers `ok` when the store is fully up, and `not ready: <reason>` when it is not.
+
 ### Updating the site
 
 Push to the deployed branch and click **Redeploy** in hPanel. With `AUTO_MIGRATE=1` new migrations apply at start-up;
