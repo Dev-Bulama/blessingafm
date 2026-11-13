@@ -257,7 +257,11 @@ Take a backup before every update and keep a copy off the server at least once a
 
 - **"We will be open shortly"** with a note *For the site owner*: the app is running but setup failed. The note says
   which setting is wrong (database password, database name, admin password, missing `SESSION_SECRET`, empty
-  database). Fix that environment variable and redeploy. The page retries every 20 seconds by itself.
+  database) or shows the error text, plus the database server version. Fix that environment variable and
+  redeploy. The page retries every 20 seconds by itself.
+- **Interrupted first install:** if a deploy was stopped while it was creating the tables, the next start clears the
+  leftover set-up lock and rebuilds any half-created *empty* tables automatically (with `AUTO_MIGRATE=1`, or
+  `npm run migrate`). It never deletes a table that contains data; it stops and tells you instead.
 - **hPanel's own "503 Service Unavailable"** page: the app did not start at all. Check, in this order:
   1. Node.js version is 20 or newer and the entry file is `server.js`.
   2. The install step finished (look at the deployment log for `npm install` errors).
@@ -428,4 +432,6 @@ InnoDB, utf8mb4, foreign keys throughout, money as integer cents.
     shop pages it is loaded on, which is why it is admin-only, audited and kept off sensitive pages.
 19. **Recently viewed products** are stored only in the visitor's browser and are never sent to the server.
 20. **Sales & tax report** counts paid orders by payment date in store time and leaves refunded orders out.
-21. **Map:** the home and contact pages embed a Google Maps iframe for the store address, which needs no API key.
+21. **Database:** tested on MySQL 8.0 and MariaDB 10.11 (what Hostinger shared hosting typically provides).
+    Start-up takes a database lock (`GET_LOCK`) so only one process ever sets up the tables at a time.
+22. **Map:** the home and contact pages embed a Google Maps iframe for the store address, which needs no API key.

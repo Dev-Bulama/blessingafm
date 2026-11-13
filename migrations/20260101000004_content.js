@@ -6,6 +6,9 @@ function base(t) {
   t.collate('utf8mb4_unicode_ci');
 }
 
+/** Tables this migration creates. If an earlier run was interrupted, start-up drops these (only when empty) and retries. */
+exports.creates = ['pages', 'banners', 'faqs', 'newsletter_subscribers', 'contact_messages'];
+
 exports.up = async function up(knex) {
   await knex.schema.createTable('pages', (t) => {
     t.increments('id');

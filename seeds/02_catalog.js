@@ -17,7 +17,12 @@ function writeSvg(rel, svg) {
 }
 
 /** Category tree, brands and sample products. Skipped when the catalogue already has products. */
-exports.seed = async function seed(knex) {
+exports.seed = async function seed(db) {
+  // One transaction: an interrupted run leaves no half-built catalogue behind.
+  await db.transaction((knex) => seedCatalog(knex));
+};
+
+async function seedCatalog(knex) {
   const existing = await knex('products').count({ n: 'id' }).first();
   if (Number(existing.n) > 0) {
     console.log('  Catalogue already has products - skipping sample catalogue');
@@ -116,4 +121,4 @@ exports.seed = async function seed(knex) {
     });
   }
   console.log(`  Seeded ${products.length} products, ${brandNames.length} brands and the category tree`);
-};
+}

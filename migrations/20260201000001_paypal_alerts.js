@@ -15,23 +15,24 @@ const NEW_SETTINGS = {
   last_daily_summary_date: '',
 };
 
+/** Tables this migration creates. If an earlier run was interrupted, start-up drops these (only when empty) and retries. */
+exports.creates = ['stock_alerts'];
+
 exports.up = async function up(knex) {
   await knex.raw("ALTER TABLE orders MODIFY payment_method ENUM('stripe','paypal','etransfer','in_store') NOT NULL");
-  await knex.schema.alterTable('orders', (t) => {
-    t.string('paypal_order_id', 64).index();
-    t.dateTime('pickup_reminder_sent_at');
-    t.dateTime('payment_reminder_sent_at');
-    t.dateTime('review_request_sent_at');
-    t.dateTime('completed_at').index();
-  });
+  // Each column is added only if missing, so an interrupted run can simply be repeated.
+  const add = async (table, column, build) => {
+    if (!(await knex.schema.hasColumn(table, column))) await knex.schema.alterTable(table, build);
+  };
+  await add('orders', 'paypal_order_id', (t) => t.string('paypal_order_id', 64).index());
+  await add('orders', 'pickup_reminder_sent_at', (t) => t.dateTime('pickup_reminder_sent_at'));
+  await add('orders', 'payment_reminder_sent_at', (t) => t.dateTime('payment_reminder_sent_at'));
+  await add('orders', 'review_request_sent_at', (t) => t.dateTime('review_request_sent_at'));
+  await add('orders', 'completed_at', (t) => t.dateTime('completed_at').index());
   await knex('orders').where({ status: 'completed' }).whereNull('completed_at').update({ completed_at: knex.ref('updated_at') });
 
-  await knex.schema.alterTable('carts', (t) => {
-    t.dateTime('reminder_sent_at');
-  });
-  await knex.schema.alterTable('users', (t) => {
-    t.boolean('marketing_opt_out').notNullable().defaultTo(false);
-  });
+  await add('carts', 'reminder_sent_at', (t) => t.dateTime('reminder_sent_at'));
+  await add('users', 'marketing_opt_out', (t) => t.boolean('marketing_opt_out').notNullable().defaultTo(false));
 
   // "Email me when this is back in stock" requests.
   await knex.schema.createTable('stock_alerts', (t) => {

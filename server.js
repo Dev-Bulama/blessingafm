@@ -14,6 +14,7 @@ const http = require('http');
 const RETRY_MS = 20000;
 const port = Number(process.env.PORT) || 3000;
 let app = null;
+let dbVersion = '';
 let problem = { title: 'Starting up', detail: 'The store is starting. This page refreshes by itself.', fix: '' };
 let logger = { info: (m) => console.log(m), error: (m, e) => console.error(m, e || '') };
 
@@ -28,12 +29,24 @@ function explain(err) {
   if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ETIMEDOUT' || code === 'EHOSTUNREACH' || /Knex: Timeout acquiring a connection/.test(msg)) {
     return db('The database server could not be reached.', 'Check DB_HOST (try 127.0.0.1, or localhost) and DB_PORT (3306).');
   }
+  if (code === 'BAM_SETUP') return { title: 'Database set-up needs attention', detail: msg, fix: err.fix || '' };
+  if (code === 'ER_TOO_LONG_KEY') return db('The database server rejected an index as too long.', 'Ask Hostinger support to confirm the database uses MySQL 8 / MariaDB 10.3 or newer, or create a new database in hPanel and use that.');
+  if (code === 'ER_TABLEACCESS_DENIED_ERROR' || code === 'ER_SPECIFIC_ACCESS_DENIED_ERROR' || code === 'ER_DBACCESS_DENIED_ERROR') return db('The database user is missing a permission.', 'In hPanel > Databases, make sure the user has all privileges on this database.');
   if (/DB_NAME|database.*not.*(set|specified)|No database selected/i.test(msg)) return db('No database name is set.', 'Set DB_NAME, DB_USER and DB_PASSWORD.');
   if (/ADMIN_EMAIL|ADMIN_PASSWORD/.test(msg)) return { title: 'Admin login not set up', detail: msg.replace(/^.*seed:\s*/s, ''), fix: 'Fix ADMIN_EMAIL / ADMIN_PASSWORD (password at least 10 characters), then redeploy.' };
   if (/SESSION_SECRET/.test(msg)) return { title: 'SESSION_SECRET is missing', detail: msg, fix: 'Set SESSION_SECRET to a long random string.' };
   if (code === 'EACCES' || code === 'EROFS' || code === 'ENOENT' || code === 'ENOTDIR') return { title: 'A folder cannot be written', detail: 'The app could not create or write to a folder it needs.', fix: 'Check UPLOAD_DIR and LOG_DIR, or leave them out to use folders inside the app.' };
   if (code === 'MODULE_NOT_FOUND') return { title: 'Dependencies are not installed', detail: 'A required package is missing.', fix: 'Run the install step again (npm install) and redeploy.' };
-  return { title: 'Setup problem', detail: `The app could not finish starting${code ? ` (${code})` : ''}.`, fix: 'Check the environment variables, then redeploy. The full error is in the app log.' };
+  return { title: 'Setup problem', detail: `The app could not finish starting${code ? ` (${code})` : ''}. Error: ${redact(msg)}`, fix: 'Send this message to whoever set up the store. It contains no passwords.' };
+}
+
+/** Error text without secrets, user names or host names, trimmed to one short line. */
+function redact(text) {
+  let out = String(text || '').split('\n')[0];
+  const secrets = ['DB_PASSWORD', 'DB_USER', 'DB_HOST', 'DB_NAME', 'SESSION_SECRET', 'SMTP_PASSWORD', 'SMTP_USER', 'STRIPE_SECRET_KEY', 'PAYPAL_CLIENT_SECRET', 'ADMIN_PASSWORD', 'CRON_TOKEN']
+    .map((k) => process.env[k]).filter((v) => v && v.length >= 3);
+  for (const s of secrets) out = out.split(s).join('***');
+  return out.replace(/'[^']*'@'[^']*'/g, "'***'@'***'").slice(0, 300);
 }
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -43,7 +56,7 @@ function setupPage(res) {
   res.end(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="20"><title>Store is being set up</title></head>
 <body style="margin:0;font-family:Arial,Helvetica,sans-serif;background:#FFD400;color:#111"><div style="max-width:560px;margin:10vh auto;padding:28px;background:#fff;border:4px solid #111">
 <h1 style="margin:0 0 8px;color:#D81E1E">We will be open shortly</h1><p>The store is being set up. Please check back in a few minutes.</p>
-<hr><p style="font-size:14px"><strong>For the site owner - ${esc(p.title)}</strong><br>${esc(p.detail)}${p.fix ? `<br><br><strong>What to do:</strong> ${esc(p.fix)}` : ''}</p>
+<hr><p style="font-size:14px"><strong>For the site owner - ${esc(p.title)}</strong><br>${esc(p.detail)}${p.fix ? `<br><br><strong>What to do:</strong> ${esc(p.fix)}` : ''}${dbVersion ? `<br><br><small>Database server: ${esc(dbVersion)}</small>` : ''}</p>
 <p style="font-size:12px;color:#555">This page retries every 20 seconds and disappears once the problem is fixed.</p></div></body></html>`);
 }
 
@@ -63,17 +76,13 @@ async function boot() {
     require('./src/config/env'); // validates required settings
     logger = require('./src/config/logger');
     const db = require('./src/config/db');
-    await db.raw('SELECT 1');
-    if (process.env.AUTO_MIGRATE === '1') {
-      const [batch, files] = await db.migrate.latest();
-      logger.info(files.length ? `Migrations applied (batch ${batch}): ${files.join(', ')}` : 'Database schema is up to date');
-    }
+    const [[ver]] = await db.raw('SELECT VERSION() AS v');
+    dbVersion = String(ver.v || '');
+    const migrate = process.env.AUTO_MIGRATE === '1';
+    const seed = process.env.AUTO_SEED === '1';
+    if (migrate || seed) await require('./src/config/setup').prepareDatabase(db, { migrate, seed, logger });
     if (!(await db.schema.hasTable('settings'))) {
       throw Object.assign(new Error('tables missing'), { code: 'BAM_NO_TABLES' });
-    }
-    if (process.env.AUTO_SEED === '1') {
-      await db.seed.run();
-      logger.info('Seeds finished. Set AUTO_SEED=0 in the environment now.');
     }
     app = require('./src/app');
     logger.info(`Blessing African Market is ready on port ${port} (${process.env.NODE_ENV || 'development'})`);

@@ -3,6 +3,7 @@ const db = require('../config/db');
 const env = require('../config/env');
 
 function robots(req, res) {
+  res.removeHeader('Content-Security-Policy'); // plain text, not a page: let browsers display it normally
   res.type('text/plain').set('Cache-Control', 'public, max-age=3600').send([
     'User-agent: *',
     'Disallow: /admin',
@@ -38,6 +39,7 @@ async function sitemap(req, res) {
     ...pages.map((p) => ({ loc: `/${p.slug}`, lastmod: p.updated_at, priority: '0.4' })),
   ];
   const body = urls.map((u) => `  <url><loc>${xmlEscape(env.appUrl + u.loc)}</loc>${u.lastmod ? `<lastmod>${new Date(u.lastmod).toISOString().slice(0, 10)}</lastmod>` : ''}<priority>${u.priority}</priority></url>`).join('\n');
+  res.removeHeader('Content-Security-Policy'); // lets a browser's XML viewer style the file
   res.type('application/xml').set('Cache-Control', 'public, max-age=3600')
     .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
 }

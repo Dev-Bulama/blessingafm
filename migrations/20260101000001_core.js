@@ -1,5 +1,8 @@
 'use strict';
 
+/** Tables this migration creates. If an earlier run was interrupted, start-up drops these (only when empty) and retries. */
+exports.creates = ['users', 'user_tokens', 'addresses', 'settings', 'sessions', 'audit_logs'];
+
 exports.up = async function up(knex) {
   await knex.raw('SET NAMES utf8mb4');
 

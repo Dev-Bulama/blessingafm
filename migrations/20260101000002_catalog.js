@@ -6,6 +6,9 @@ function base(t) {
   t.collate('utf8mb4_unicode_ci');
 }
 
+/** Tables this migration creates. If an earlier run was interrupted, start-up drops these (only when empty) and retries. */
+exports.creates = ['categories', 'brands', 'products', 'product_images', 'product_variants', 'product_tags', 'inventory_logs'];
+
 exports.up = async function up(knex) {
   // Tree: department (parent_id NULL) -> category -> subcategory.
   await knex.schema.createTable('categories', (t) => {
@@ -39,7 +42,7 @@ exports.up = async function up(knex) {
     t.integer('category_id').unsigned().notNullable().references('categories.id').onDelete('RESTRICT');
     t.integer('brand_id').unsigned().references('brands.id').onDelete('SET NULL');
     t.string('name', 190).notNullable();
-    t.string('slug', 200).notNullable().unique();
+    t.string('slug', 190).notNullable().unique();
     t.string('sku', 64).notNullable().unique();
     t.string('short_description', 300);
     t.text('description');

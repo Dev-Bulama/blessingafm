@@ -6,6 +6,9 @@ function base(t) {
   t.collate('utf8mb4_unicode_ci');
 }
 
+/** Tables this migration creates. If an earlier run was interrupted, start-up drops these (only when empty) and retries. */
+exports.creates = ['coupons', 'carts', 'cart_items', 'wishlists', 'delivery_zones', 'shipping_rates', 'pickup_slots', 'orders', 'order_items', 'order_status_history', 'payments', 'coupon_redemptions', 'reviews'];
+
 exports.up = async function up(knex) {
   await knex.schema.createTable('coupons', (t) => {
     t.increments('id');
@@ -131,7 +134,7 @@ exports.up = async function up(knex) {
     t.string('tracking_number', 80);
     t.string('customer_note', 500);
     t.text('internal_notes');
-    t.string('stripe_session_id', 255).index();
+    t.string('stripe_session_id', 190).index();
     t.boolean('stock_restored').notNullable().defaultTo(false);
     t.dateTime('paid_at');
     t.timestamps(true, true);
@@ -180,7 +183,7 @@ exports.up = async function up(knex) {
     t.increments('id');
     t.integer('order_id').unsigned().notNullable().references('orders.id').onDelete('CASCADE');
     t.string('provider', 30).notNullable(); // stripe, etransfer, in_store
-    t.string('provider_ref', 255);
+    t.string('provider_ref', 160);
     t.integer('amount_cents').unsigned().notNullable();
     t.string('currency', 3).notNullable().defaultTo('CAD');
     t.string('status', 30).notNullable(); // succeeded, refunded

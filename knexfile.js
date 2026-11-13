@@ -1,4 +1,5 @@
 'use strict';
+const path = require('path');
 require('dotenv').config({ quiet: true });
 
 /** Knex configuration shared by the app, migrations and seeds. */
@@ -17,9 +18,10 @@ module.exports = {
   },
   pool: {
     min: 0,
-    max: Math.min(Number(process.env.DB_POOL_MAX || 3), 5),
+    // At least 3: start-up holds one connection for its setup lock while migrations use the others.
+    max: Math.max(3, Math.min(Number(process.env.DB_POOL_MAX || 3), 5)),
     idleTimeoutMillis: 30000,
   },
-  migrations: { directory: './migrations', tableName: 'knex_migrations' },
-  seeds: { directory: './seeds' },
+  migrations: { directory: path.join(__dirname, 'migrations'), tableName: 'knex_migrations' },
+  seeds: { directory: path.join(__dirname, 'seeds') },
 };
